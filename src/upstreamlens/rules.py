@@ -1,4 +1,32 @@
-from .models import Report
+from .models import NginxReport, Report
+
+
+def analyze_nginx(report: NginxReport) -> None:
+    report.confidence = "medium" if report.matched_events else "unknown"
+    if report.matched_events:
+        report.summary = f"日志中有 {report.matched_events} 条符合筛选条件的已识别事件。"
+        report.confidence_basis.append("故障类型来自日志中的标准错误消息，原因仍需其他证据确认。")
+    else:
+        report.summary = "没有符合筛选条件的已识别故障事件。"
+        report.confidence_basis.append("当前日志与筛选条件不足以确定故障原因。")
+    if report.unconfirmed_events:
+        report.confidence_basis.append("部分事件缺少筛选所需字段，无法确定关联。")
+    if report.fault_counts["connection_refused"]:
+        report.possible_causes.append("上游地址没有接受连接，可能与监听地址、端口或主动拒绝有关。")
+        report.suggestions.append("核对网关所在环境的上游配置、监听地址和防火墙日志。")
+    if report.fault_counts["upstream_timed_out"]:
+        report.possible_causes.append("上游响应过慢或网络路径存在延迟。")
+        report.suggestions.append("核对上游响应耗时、超时配置及网络状态。")
+    if report.fault_counts["prematurely_closed"]:
+        report.possible_causes.append("上游在响应完成前关闭连接，具体原因尚不明确。")
+        report.suggestions.append("检查对应时间附近的上游应用日志和协议配置。")
+    if report.fault_counts["no_live_upstreams"]:
+        report.possible_causes.append("网关当时未能选择可用上游。")
+        report.suggestions.append("检查上游配置、健康状态和相关错误日志。")
+    report.unconfirmed.extend([
+        "日志时间未包含时区，无法确认绝对时间。",
+        "上游进程状态、配置和连接失败的具体原因需要其他证据。",
+    ])
 
 
 def analyze(report: Report) -> None:

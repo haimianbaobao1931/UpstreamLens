@@ -9,8 +9,9 @@ from rich.console import Console
 
 from .demo import load_demo
 from .diagnostic import diagnose
-from .models import Report
-from .render import render_json, render_text
+from .models import NginxReport, Report
+from .nginx import NginxInputError, analyze_nginx_file
+from .render import render_json, render_nginx, render_text
 from .target import InvalidTarget, parse_target
 
 app = typer.Typer(
@@ -30,7 +31,7 @@ FormatOption = Annotated[ReportFormat, typer.Option("--format", help="报告显�
 OutputOption = Annotated[Path | None, typer.Option("--output", help="将报告另存为新的 JSON 文件。")]
 
 
-def _emit(report: Report, output_format: ReportFormat, output: Path | None) -> None:
+def _emit(report: Report | NginxReport, output_format: ReportFormat, output: Path | None) -> None:
     if output is not None:
         try:
             with output.open("x", encoding="utf-8", newline="\n") as file:
@@ -44,6 +45,8 @@ def _emit(report: Report, output_format: ReportFormat, output: Path | None) -> N
 
     if output_format == ReportFormat.JSON:
         typer.echo(render_json(report))
+    elif isinstance(report, NginxReport):
+        render_nginx(report, Console(highlight=False, soft_wrap=True))
     else:
         render_text(report, Console(highlight=False, soft_wrap=True))
 
@@ -77,6 +80,23 @@ def demo_command(
 ) -> None:
     """离线展示内置的模拟故障报告。"""
     _emit(load_demo(), output_format, output)
+
+
+@app.command("analyze-nginx")
+def analyze_nginx_command(
+    path: Annotated[Path, typer.Argument(help="用户提供的本地 Nginx 错误日志。")],
+    output_format: FormatOption = ReportFormat.TEXT,
+    output: OutputOption = None,
+    host: Annotated[str | None, typer.Option("--host", help="按日志中的请求主机精确筛选。 ")] = None,
+    request_path: Annotated[str | None, typer.Option("--request-path", help="按不含查询参数的请求路径精确筛选。 ")] = None,
+) -> None:
+    """离线分析本地 Nginx 错误日志。"""
+    try:
+        report = analyze_nginx_file(path, host=host, request_path=request_path)
+    except NginxInputError as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(2) from None
+    _emit(report, output_format, output)
 
 
 def main() -> int:

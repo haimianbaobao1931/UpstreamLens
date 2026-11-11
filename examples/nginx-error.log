@@ -1,0 +1,5 @@
+2026/01/02 03:04:05 [error] 101#101: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 192.0.2.1, server: gateway.example, request: "GET /api/health?token=synthetic HTTP/1.1", upstream: "http://192.0.2.10:8080/api/health?token=synthetic", host: "gateway.example"
+2026/01/02 03:04:06 [error] 101#101: *2 upstream timed out (110: Connection timed out) while reading response header from upstream, client: 192.0.2.2, server: gateway.example, request: "POST /api/orders HTTP/1.1", upstream: "http://192.0.2.10:8080/api/orders", host: "gateway.example"
+2026/01/02 03:04:07 [warn] 101#101: *3 upstream prematurely closed connection while reading response header from upstream, client: 192.0.2.3, server: gateway.example, request: "GET /api/health HTTP/1.1", upstream: "http://192.0.2.10:8080/api/health", host: "gateway.example"
+2026/01/02 03:04:08 [crit] 101#101: *4 no live upstreams while connecting to upstream, client: 192.0.2.4, server: gateway.example, request: "GET /api/health HTTP/1.1", upstream: "http://backend/api/health", host: "gateway.example"
+2026/01/02 03:04:09 [notice] 101#101: signal process started

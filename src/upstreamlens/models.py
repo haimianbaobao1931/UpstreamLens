@@ -22,3 +22,39 @@ class Report:
     possible_causes: list[str]
     unconfirmed: list[str]
     suggestions: list[str]
+
+
+@dataclass
+class NginxEvidence:
+    line: int
+    timestamp: str
+    timezone: str
+    severity: str
+    error_type: str
+    observed: str
+    request_method: str | None
+    request_path: str | None
+    server: str | None
+    upstream: str | None
+    correlation: str
+
+
+@dataclass
+class NginxReport:
+    schema_version: str
+    source: str
+    total_lines: int
+    valid_events: int
+    unrecognized_lines: int
+    duplicate_lines: int
+    matched_events: int
+    unmatched_events: int
+    unconfirmed_events: int
+    fault_counts: dict[str, int]
+    evidence: list[NginxEvidence]
+    summary: str
+    confidence: str
+    confidence_basis: list[str]
+    possible_causes: list[str]
+    unconfirmed: list[str]
+    suggestions: list[str]

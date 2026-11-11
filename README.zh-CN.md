@@ -23,7 +23,17 @@ upstreamlens diagnose https://example.com
 upstreamlens diagnose https://example.com --timeout 3 --format json --output report.json
 upstreamlens demo
 upstreamlens demo --format json
+upstreamlens analyze-nginx examples/nginx-error.log
+upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --request-path /api/health --format json --output nginx-report.json
 ```
+
+`examples/nginx-error.log` 是模拟测试数据，使用虚构域名和文档示例 IP。`analyze-nginx` 离线读取用户明确指定的本地 UTF-8 格式 Nginx 错误日志，识别上游连接拒绝、上游超时、上游提前关闭连接以及无可用上游。分析成功的退出码为 0，输入或输出错误的退出码为 2。
+
+可选的主机筛选只匹配日志中的请求 `host` 字段，忽略主机名字母大小写、末尾的点及日志中附带的端口。路径筛选对去掉查询参数后的请求路径进行精确比较。缺少筛选字段的事件标为关联未确认，明确不匹配的事件单独计数。单独的 `server` 字段不能确认请求主机。故障分类数量只统计符合筛选条件的事件，有效事件总数还包含不匹配和未确认事件。
+
+报告包含模式版本 `1.0`、计数、有数量上限的代表性证据、置信度依据、可能原因、待确认事实和建议。请求路径、服务器名称、上游主机、认证信息、查询参数、IP 地址和原始行默认隐藏，可显示上游 HTTP 协议和端口。日志时间保留原文并标为时区未知。完全相同的已识别日志行会去重，因此内容完全相同的不同事件也可能被合并。
+
+输入必须是普通文件，最多 10 MiB、100000 行，每行最多 64 KiB。空文件、无效 UTF-8 和超限均报错。输出路径必须是新文件，不能指向已有输入文件。
 
 每个网络阶段默认限时五秒。工具按指定路径和查询参数发出 HTTP GET 请求，读取响应状态和响应头。200 至 399 标为通过，400 至 599 标为失败，其余状态标为未知。重定向只记录状态，不跟随。每项检测使用 PASS、FAIL 或 UNKNOWN。目标为 IP 地址时跳过 DNS，纯 HTTP 跳过 TLS，跳过的检测标为 UNKNOWN。
 
@@ -35,7 +45,7 @@ upstreamlens demo --format json
 - 拒绝含用户名或密码的网址，请求不会附带认证头或会话凭据。查询参数会按输入发送给目标，请避免在其中包含秘密。
 - HTTPS 使用标准库校验证书链和主机名。HTTP 诊断使用 HTTP/1.1。
 - HTTP 502 是响应观测。确认实际后端地址、端口和进程状态需要服务端证据。
-- 演示完全离线，使用模拟数据。当前版本暂不采集 Nginx 或 systemd 日志，也未集成 Docker。
+- 演示完全离线，使用模拟数据。Nginx 分析只读取用户指定的文件，当前版本暂不采集 systemd 日志，也未集成 Docker。
 
 ## 测试和打包
 
