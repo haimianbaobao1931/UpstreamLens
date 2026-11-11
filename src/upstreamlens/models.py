@@ -59,6 +59,10 @@ class NginxReport:
     possible_causes: list[str]
     unconfirmed: list[str]
     suggestions: list[str]
+    # 计入故障数量的记录最早、最晚的日志时间文本，以及两者跨度；无匹配记录时为 None。
+    first_fault_timestamp: str | None
+    last_fault_timestamp: str | None
+    fault_span_seconds: int | None
 
 
 @dataclass
@@ -76,6 +80,9 @@ class NginxFileStats:
     unmatched_events: int
     unconfirmed_events: int
     fault_counts: dict[str, int]
+    first_fault_timestamp: str | None
+    last_fault_timestamp: str | None
+    fault_span_seconds: int | None
 
 
 @dataclass

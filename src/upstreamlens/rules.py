@@ -1,12 +1,23 @@
 from .models import NginxReport, Report
 
+EXPIRY_WARNING_DAYS = 14
+
 
 def analyze_nginx(report: NginxReport) -> None:
-    report.confidence = "medium" if report.matched_events else "unknown"
     if report.matched_events:
+        report.confidence = "medium"
         report.summary = f"日志中有 {report.matched_events} 条符合筛选条件的已识别故障记录。"
         report.confidence_basis.append("故障类型来自日志中的标准错误消息，原因仍需其他证据确认。")
+    elif report.unconfirmed_events:
+        # 已识别但缺少筛选字段的记录不计入故障数量，因此不能声称没有故障记录。
+        report.confidence = "low"
+        report.summary = (
+            f"未找到符合筛选条件的记录，但有 {report.unconfirmed_events} 条已识别故障记录"
+            "缺少筛选所需字段，无法确认关联。"
+        )
+        report.confidence_basis.append("故障类型可识别，但关联无法确认，因此未计入故障数量。")
     else:
+        report.confidence = "unknown"
         report.summary = "没有符合筛选条件的已识别故障事件。"
         report.confidence_basis.append("当前日志与筛选条件不足以确定故障原因。")
     if report.unconfirmed_events:
@@ -39,9 +50,7 @@ def analyze(report: Report) -> None:
         else:
             report.summary = "已连接目标，但未能确认最终 HTTP 状态。"
             report.suggestions = ["查看服务端日志，确认是否发出了最终响应。"]
-        return
-
-    if failure.name == "DNS":
+    elif failure.name == "DNS":
         report.summary = "系统解析器未返回目标的可用地址。"
         report.possible_causes = ["目标记录缺失，或当前网络的解析器不可用。"]
         report.suggestions = ["检查目标域名记录和本机 DNS 解析器。"]
@@ -65,3 +74,17 @@ def analyze(report: Report) -> None:
         report.summary = "未收到可解析的 HTTP 响应。"
         report.possible_causes = ["服务未及时响应、连接提前关闭，或目标端口使用其他协议。"]
         report.suggestions = ["核对目标端口的协议，并检查服务端请求和错误日志。"]
+    _note_certificate_expiry(report)
+
+
+def _note_certificate_expiry(report: Report) -> None:
+    """证书在到期判定窗口内时，把到期时间作为可能原因列出。"""
+    tls = next((check for check in report.checks if check.name == "TLS" and check.status == "PASS"), None)
+    days = tls.evidence.get("expires_in_days") if tls is not None else None
+    if not isinstance(days, int) or days > EXPIRY_WARNING_DAYS:
+        return
+    report.possible_causes = [
+        *report.possible_causes,
+        f"服务器证书剩余有效天数 {days} 天，可能与到期或续期部署有关。",
+    ]
+    report.suggestions = [*report.suggestions, "核对证书到期时间，并在到期前完成续期和部署。"]

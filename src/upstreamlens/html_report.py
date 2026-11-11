@@ -31,6 +31,7 @@ _EVIDENCE_LABELS = {
     "host": "主机", "port": "端口", "addresses": "解析地址", "address": "地址",
     "version": "版本", "certificate": "证书", "valid_from": "证书生效",
     "valid_until": "证书到期", "status_code": "状态码", "detail": "说明", "error_code": "错误码",
+    "duration_ms": "耗时（毫秒）", "expires_in_days": "剩余有效天数",
 }
 
 
@@ -141,10 +142,18 @@ def _nginx(report: NginxReport) -> tuple[str, str, str, str, str]:
     badge += f'<span class="badge unknown">关联未确认 {_safe(report.unconfirmed_events)}</span>'
     badge += f'<span class="badge">置信度 {_safe(report.confidence)}</span>'
     count_basis = "旧版去重统计，可能少计" if report.schema_version == "1.0" else "按物理日志记录统计"
+    if report.first_fault_timestamp is None or report.last_fault_timestamp is None:
+        window = "无符合筛选的记录"
+    else:
+        window = (
+            f"{report.first_fault_timestamp} 至 {report.last_fault_timestamp}"
+            f"（{report.fault_span_seconds} 秒）"
+        )
     content = _section("记录概览", count_basis, _metrics([
         ("总行数", report.total_lines), ("有效记录", report.valid_events),
         ("符合筛选", report.matched_events), ("不匹配", report.unmatched_events),
         ("关联未确认", report.unconfirmed_events), ("未识别行", report.unrecognized_lines),
+        ("故障时间范围", window),
     ]), "records")
     maximum = max(report.fault_counts.values(), default=0) or 1
     rows = []

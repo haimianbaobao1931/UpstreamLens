@@ -4,9 +4,19 @@ from dataclasses import asdict
 from rich.console import Console
 from rich.table import Table
 
-from .models import NginxFileEvidence, NginxMultiReport, NginxReport, Report
+from .models import NginxFileEvidence, NginxFileStats, NginxMultiReport, NginxReport, Report
 
 _STATUS_COLORS = {"PASS": "green", "FAIL": "red", "UNKNOWN": "yellow"}
+
+
+def _window(record: NginxReport | NginxFileStats) -> str:
+    """把故障时间范围渲染为文本；没有匹配记录时说明原因。"""
+    if record.first_fault_timestamp is None or record.last_fault_timestamp is None:
+        return "无符合筛选的记录"
+    return (
+        f"{record.first_fault_timestamp} 至 {record.last_fault_timestamp}"
+        f"（{record.fault_span_seconds} 秒）"
+    )
 
 
 def render_json(report: Report | NginxReport) -> str:
@@ -24,6 +34,7 @@ def render_nginx(report: NginxReport, console: Console) -> None:
         f"符合筛选 {report.matched_events}  不匹配 {report.unmatched_events}  "
         f"关联未确认 {report.unconfirmed_events}", markup=False,
     )
+    console.print(f"故障时间范围 {_window(report)}", markup=False)
     table = Table(show_lines=True)
     table.add_column("故障类型")
     table.add_column("数量")
@@ -38,6 +49,7 @@ def render_nginx(report: NginxReport, console: Console) -> None:
                 f"不匹配 {file.unmatched_events}  关联未确认 {file.unconfirmed_events}",
                 markup=False,
             )
+            console.print(f"{file.source_file}  故障时间范围 {_window(file)}", markup=False)
             for kind, count in file.fault_counts.items():
                 console.print(f"{file.source_file}  {kind}  {count}", markup=False)
     for item in report.evidence:
@@ -81,6 +93,8 @@ def render_text(report: Report, console: Console) -> None:
         "status_code": "状态码",
         "detail": "说明",
         "error_code": "错误码",
+        "duration_ms": "耗时（毫秒）",
+        "expires_in_days": "剩余有效天数",
     }
     for check in report.checks:
         fields = []
