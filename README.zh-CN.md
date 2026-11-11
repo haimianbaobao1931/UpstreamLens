@@ -4,17 +4,46 @@ UpstreamLens 对单个 HTTP 或 HTTPS 网址采集 DNS、TCP、TLS 和 HTTP 证�
 
 [英文说明](README.md)
 
+## 主要功能
+
+- 对用户明确指定的单个网址检查 DNS、TCP、TLS 和 HTTP。
+- 离线分析用户指定的 Nginx 错误日志，支持多份轮转文本日志。
+- 输出终端、JSON 和独立离线 HTML 报告，区分观测、可能原因和待确认信息。
+
+`502` 是响应观测。确认实际上游地址、端口或进程状态需要服务端证据。可下载[模拟报告](docs/demo.html)后在本地打开。报告和截图均使用合成数据，不是真实服务器诊断。GitHub Pages 文件已放在 `docs/`，需要仓库所有者启用后才能在线访问。
+
+![UpstreamLens 模拟诊断报告](docs/report-preview.png)
+
 ## 安装
 
-使用 Python 3.11 或更新版本。在项目目录下运行以下 PowerShell 命令：
+需要 Python 3.11 或更新版本及 Git。普通用户可直接从 GitHub 仓库安装。
+
+Windows PowerShell：
 
 ```powershell
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m pip install "git+https://github.com/haimianbaobao1931/UpstreamLens.git"
 .\.venv\Scripts\upstreamlens.exe --help
 ```
 
-下面的示例假定已激活虚拟环境，也可以像上面一样直接调用虚拟环境中的可执行文件。
+Linux：
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install "git+https://github.com/haimianbaobao1931/UpstreamLens.git"
+.venv/bin/upstreamlens --help
+```
+
+开发者可先克隆仓库，创建虚拟环境，再安装可编辑包和测试依赖。
+
+```sh
+git clone https://github.com/haimianbaobao1931/UpstreamLens.git
+cd UpstreamLens
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+```
+
+Windows PowerShell 克隆后使用 `py -3.11 -m venv .venv` 和 `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"`。下面的示例假定已激活虚拟环境，也可以像上面一样直接调用虚拟环境中的可执行文件。
 
 ## 使用
 

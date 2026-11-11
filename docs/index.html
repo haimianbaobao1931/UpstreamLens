@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="UpstreamLens 帮助开发者用网络探测和 Nginx 日志证据排查部署故障。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'sha256-Y7o8PjSbzNx5dp8k9MFqA6OD79cfTSENxO4JJBP+TAo='; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <link rel="icon" href="data:,">
+  <title>UpstreamLens · 部署故障诊断</title>
+  <style>
+:root{color-scheme:light;--ink:#172b38;--muted:#586f79;--teal:#166e69;--line:#dce6e7;--canvas:#f2f6f5;--nav:#122d3a}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--canvas);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.6}a{color:inherit}a:focus-visible{outline:3px solid #368f86;outline-offset:4px}.wrap{width:min(1240px,calc(100% - 64px));margin:auto}.top{background:var(--nav);color:#d7e8e9}.top-inner{display:flex;justify-content:space-between;align-items:center;min-height:70px;gap:20px}.brand{display:flex;align-items:center;font-size:20px;font-weight:750;letter-spacing:-.04em;color:white;text-decoration:none}.mark{display:inline-grid;place-items:center;width:30px;height:30px;background:#8fd2c8;color:#12383c;border-radius:7px;margin-right:9px;font-weight:850}.top nav{display:flex;gap:25px;align-items:center;font-size:14px}.top nav a{color:#d7e8e9;text-decoration:none}.top nav a:hover{color:white}.hero{padding:80px 0 74px;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:60px;align-items:center}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.11em;color:var(--teal)}h1{font-size:clamp(37px,4.2vw,59px);line-height:1.16;letter-spacing:-.045em;margin:16px 0 22px;max-width:650px}.lead{max-width:590px;color:#49616b;font-size:18px;margin:0}.actions{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0 20px}.button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;border-radius:7px;padding:10px 18px;font-size:14px;font-weight:750;text-decoration:none}.primary{background:#176d67;color:white}.primary:hover{background:#125d58}.secondary{background:white;color:#234c4d;border:1px solid #c9dcd9}.secondary:hover{border-color:#6ca9a2}.disclaimer{color:#697d83;font-size:13px;margin:0}.preview{background:#fff;border:1px solid #cadcdd;border-radius:12px;box-shadow:0 18px 45px rgba(17,50,58,.11);overflow:hidden}.preview-top{display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid #dbe8e7;background:#fafcfc;color:#6b8085;font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:#a5bcb9}.preview-top span:last-child{margin-left:7px}.preview img{display:block;width:100%;height:auto}.preview-caption{padding:12px 15px;border-top:1px solid #dbe8e7;font-size:12px;color:#5e777c}.band{background:white;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.section{padding:69px 0}.section-header{display:flex;justify-content:space-between;gap:30px;align-items:end;margin-bottom:28px}.section-header h2{font-size:30px;line-height:1.25;letter-spacing:-.03em;margin:8px 0 0}.section-header p{color:var(--muted);max-width:460px;margin:0;font-size:15px}.features{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.feature{padding:24px;border:1px solid var(--line);border-radius:9px;background:#fbfdfc}.feature-label{display:inline-block;color:var(--teal);font-size:12px;font-weight:750;letter-spacing:.06em}.feature h3{font-size:18px;margin:12px 0 9px}.feature p{font-size:14px;color:#526973;margin:0}.workflow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:58px;align-items:start}.workflow h2{font-size:30px;letter-spacing:-.03em;line-height:1.25;margin:10px 0 14px}.workflow p{color:var(--muted);margin:0 0 16px}.workflow a{color:var(--teal);font-weight:700}.terminal{background:#14313c;border:1px solid #284c55;color:#d9e8e6;border-radius:9px;padding:20px;overflow:auto}.terminal p{color:#92b5b5;font-size:12px;margin:0 0 12px}.terminal pre{font:13px/1.8 ui-monospace,Consolas,monospace;margin:0;white-space:pre;min-width:max-content}.terminal code{color:#e0efec}.scope{background:#edf4f2;border-left:3px solid #6ca99e;padding:14px 16px;color:#4d666d;font-size:13px;margin-top:20px}.bottom{border-top:1px solid var(--line);padding:23px 0;color:#647b80;font-size:13px}.bottom-inner{display:flex;justify-content:space-between;gap:16px}.bottom a{color:#376f6b;text-decoration:none}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:38px;padding:56px 0}.hero-copy{max-width:700px}.preview{max-width:760px}.features{grid-template-columns:1fr}.feature{padding:20px}.workflow{grid-template-columns:1fr;gap:26px}.section-header{display:block}.section-header p{margin-top:12px}}
+@media(max-width:520px){.wrap{width:calc(100% - 36px)}.top-inner{min-height:64px}.top nav{gap:14px}.top nav a:first-child,.top nav a:nth-child(2){display:none}.top nav a{white-space:nowrap}.hero{padding:46px 0}.lead{font-size:16px}.actions{display:grid}.button{width:100%}.section{padding:50px 0}.section-header h2,.workflow h2{font-size:26px}.bottom-inner{display:block}.bottom a{display:inline-block;margin-top:8px}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="wrap top-inner">
+    <a class="brand" href="index.html"><span class="mark">U</span>UpstreamLens</a>
+    <nav aria-label="主导航"><a href="#features">功能</a><a href="demo.html">模拟报告</a><a href="https://github.com/haimianbaobao1931/UpstreamLens">GitHub 仓库 ↗</a></nav>
+  </div></header>
+  <main>
+    <div class="wrap hero">
+      <div class="hero-copy">
+        <div class="eyebrow">开源命令行工具 · 部署故障诊断</div>
+        <h1>把部署故障拆成<br>可验证的证据</h1>
+        <p class="lead">从 DNS、TCP、TLS 和 HTTP 到用户提供的 Nginx 错误日志，UpstreamLens 帮你整理观测结果、可能原因与仍需确认的信息。</p>
+        <div class="actions"><a class="button primary" href="demo.html">查看模拟诊断报告 →</a><a class="button secondary" href="https://github.com/haimianbaobao1931/UpstreamLens">查看 GitHub 仓库 ↗</a></div>
+        <p class="disclaimer">演示使用合成数据，展示模拟故障，不涉及真实服务器诊断。</p>
+      </div>
+      <div class="preview"><div class="preview-top"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>UpstreamLens · 模拟诊断报告</span></div><img src="report-preview.png" alt="模拟诊断报告截图，展示 DNS、TCP、TLS 和 HTTP 检测结果" width="1440" height="900"><div class="preview-caption">实际报告界面 · 模拟网关返回 502 的示例</div></div>
+    </div>
+    <div class="band" id="features"><div class="wrap section">
+      <div class="section-header"><div><div class="eyebrow">核心功能</div><h2>从现象走向可核对的线索</h2></div><p>每个结论都从实际探测或用户提供的日志出发，保留无法确认的信息。</p></div>
+      <div class="features">
+        <article class="feature"><span class="feature-label">网络诊断</span><h3>逐层检查连接</h3><p>针对指定的单个 HTTP 或 HTTPS 目标，检查解析、连接、证书和响应，逐项展示状态与证据。</p></article>
+        <article class="feature"><span class="feature-label">日志分析</span><h3>离线分析上游故障</h3><p>读取显式指定的 Nginx 错误日志，统计连接拒绝、超时、提前关闭和无可用上游等记录。</p></article>
+        <article class="feature"><span class="feature-label">独立报告</span><h3>把证据整理成报告</h3><p>输出终端、JSON 或单文件 HTML 报告。HTML 可离线打开，日志来源和敏感字段经过隐藏处理。</p></article>
+      </div>
+    </div></div>
+    <div class="wrap section workflow"><div><div class="eyebrow">开始使用</div><h2>先看演示，再检查自己的目标</h2><p>使用离线演示了解报告结构，再对获授权访问的目标运行诊断，或分析自己提供的日志文件。</p><a href="https://github.com/haimianbaobao1931/UpstreamLens#readme">查看安装与使用说明 →</a><div class="scope">HTTP 502 是响应观测。确认实际上游地址、端口和进程状态需要服务端证据。</div></div>
+      <div class="terminal"><p>示例命令</p><pre><code>upstreamlens demo
+upstreamlens diagnose https://example.com
+upstreamlens analyze-nginx error.log
+upstreamlens demo --format html --output demo.html</code></pre></div>
+    </div>
+  </main>
+  <footer class="bottom"><div class="wrap bottom-inner"><span>UpstreamLens · 基于证据排查部署故障</span><a href="https://github.com/haimianbaobao1931/UpstreamLens">GitHub 仓库 ↗</a></div></footer>
+</body>
+</html>

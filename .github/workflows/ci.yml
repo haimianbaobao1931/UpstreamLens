@@ -45,3 +45,33 @@ jobs:
       - name: 构建安装包和源码归档
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: python -m build
+
+      - name: 验证 Linux 独立安装
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        shell: bash
+        run: |
+          python3 -m venv "$RUNNER_TEMP/upstreamlens-github"
+          "$RUNNER_TEMP/upstreamlens-github/bin/python" -m pip install "git+https://github.com/haimianbaobao1931/UpstreamLens.git"
+          "$RUNNER_TEMP/upstreamlens-github/bin/upstreamlens" --help
+          "$RUNNER_TEMP/upstreamlens-github/bin/upstreamlens" demo
+          "$RUNNER_TEMP/upstreamlens-github/bin/upstreamlens" analyze-nginx examples/nginx-error.log --format json
+          "$RUNNER_TEMP/upstreamlens-github/bin/python" - "$RUNNER_TEMP/upstreamlens-github/bin/upstreamlens" <<'PY'
+          import json
+          import socket
+          import subprocess
+          import sys
+
+          with socket.socket() as reserved:
+              reserved.bind(("127.0.0.1", 0))
+              target = f"http://127.0.0.1:{reserved.getsockname()[1]}"
+              result = subprocess.run(
+                  [sys.argv[1], "diagnose", target, "--format", "json"],
+                  capture_output=True, text=True,
+              )
+          assert result.returncode == 1
+          assert json.loads(result.stdout)["checks"][2]["status"] == "FAIL"
+          PY
+          python3 -m venv "$RUNNER_TEMP/upstreamlens-wheel"
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" demo --format html --output "$RUNNER_TEMP/upstreamlens-wheel-demo.html"
+          test -s "$RUNNER_TEMP/upstreamlens-wheel-demo.html"

@@ -4,17 +4,46 @@ UpstreamLens diagnoses deployment failures for a single HTTP or HTTPS URL by gat
 
 [简体中文](README.zh-CN.md)
 
+## What it does
+
+- Inspect DNS, TCP, TLS, and HTTP for one explicitly supplied URL.
+- Analyze explicitly supplied local Nginx error logs, including rotated text files.
+- Produce terminal, JSON, and standalone offline HTML reports that separate observations, possible causes, and unknowns.
+
+`502` is an observed response. Confirming an upstream address, port, or process state requires server-side evidence. Download the [simulated report](docs/demo.html) to open it locally. The report and screenshot use synthetic data, not a real server diagnosis. GitHub Pages files are prepared in `docs/`; online publication requires the repository owner to enable Pages.
+
+![Simulated UpstreamLens diagnostic report](docs/report-preview.png)
+
 ## Install
 
-Use Python 3.11 or newer. In Windows PowerShell, from the project directory:
+Use Python 3.11 or newer and Git. The project is installed directly from the GitHub repository.
+
+Windows PowerShell:
 
 ```powershell
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m pip install "git+https://github.com/haimianbaobao1931/UpstreamLens.git"
 .\.venv\Scripts\upstreamlens.exe --help
 ```
 
-The examples below assume the virtual environment is active. You can also invoke its executable directly as shown above.
+Linux:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install "git+https://github.com/haimianbaobao1931/UpstreamLens.git"
+.venv/bin/upstreamlens --help
+```
+
+For development, clone the repository, create a virtual environment, and install the editable package with test dependencies.
+
+```sh
+git clone https://github.com/haimianbaobao1931/UpstreamLens.git
+cd UpstreamLens
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+```
+
+In Windows PowerShell, use `py -3.11 -m venv .venv` and `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"` after cloning. The examples below assume the virtual environment is active. You can also invoke its executable directly as shown above.
 
 ## Usage
 
