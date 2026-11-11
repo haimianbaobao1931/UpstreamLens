@@ -53,4 +53,4 @@ upstreamlens demo --format json
 
 测试使用替身和回环套接字，无需公网诊断目标或私有配置。工作流只读取仓库内容，构建产物留在运行环境内，无上传或发布步骤。
 
-本轮已在 Windows 11、PowerShell 7.6 和 Python 3.11.4 上完成本地验证。Ubuntu、Python 3.12 和 GitHub 托管运行仍待验证。
+已在 Windows 11、PowerShell 7.6 和 Python 3.11.4 上完成本地验证。GitHub Actions 已通过 Windows 和 Ubuntu 上的 Python 3.11、3.12 四组测试，以及 Ubuntu Python 3.12 的分发包构建。
