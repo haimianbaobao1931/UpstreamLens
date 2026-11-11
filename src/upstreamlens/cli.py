@@ -9,6 +9,7 @@ from rich.console import Console
 
 from .demo import load_demo
 from .diagnostic import diagnose
+from .html_report import render_html
 from .models import NginxReport, Report
 from .nginx import NginxInputError, analyze_nginx_files
 from .render import render_json, render_nginx, render_text
@@ -25,17 +26,25 @@ app = typer.Typer(
 class ReportFormat(str, Enum):
     TEXT = "text"
     JSON = "json"
+    HTML = "html"
 
 
 FormatOption = Annotated[ReportFormat, typer.Option("--format", help="报告显示格式。")]
-OutputOption = Annotated[Path | None, typer.Option("--output", help="将报告另存为新的 JSON 文件。")]
+OutputOption = Annotated[Path | None, typer.Option("--output", help="将报告另存为新的 JSON 或 HTML 文件。")]
+
+
+def _validate_output(output_format: ReportFormat, output: Path | None) -> None:
+    if output_format == ReportFormat.HTML and output is None:
+        typer.echo("HTML 格式必须使用 --output 指定新文件。", err=True)
+        raise typer.Exit(2)
 
 
 def _emit(report: Report | NginxReport, output_format: ReportFormat, output: Path | None) -> None:
     if output is not None:
         try:
             with output.open("x", encoding="utf-8", newline="\n") as file:
-                file.write(render_json(report) + "\n")
+                content = render_html(report) if output_format == ReportFormat.HTML else render_json(report)
+                file.write(content + "\n")
         except FileExistsError:
             typer.echo("输出文件已存在，请指定新路径。", err=True)
             raise typer.Exit(2) from None
@@ -43,7 +52,9 @@ def _emit(report: Report | NginxReport, output_format: ReportFormat, output: Pat
             typer.echo("无法写入报告，请检查目录和写入权限。", err=True)
             raise typer.Exit(2) from None
 
-    if output_format == ReportFormat.JSON:
+    if output_format == ReportFormat.HTML:
+        typer.echo("HTML 报告已保存。")
+    elif output_format == ReportFormat.JSON:
         typer.echo(render_json(report))
     elif isinstance(report, NginxReport):
         render_nginx(report, Console(highlight=False, soft_wrap=True))
@@ -59,6 +70,7 @@ def diagnose_command(
     timeout: Annotated[float, typer.Option("--timeout", help="每项检测的超时秒数（0 至 60）。")] = 5.0,
 ) -> None:
     """探测一个网址并输出诊断报告。"""
+    _validate_output(output_format, output)
     if not math.isfinite(timeout) or not 0 < timeout <= 60:
         typer.echo("超时必须大于 0 且不超过 60 秒。", err=True)
         raise typer.Exit(2)
@@ -79,6 +91,7 @@ def demo_command(
     output: OutputOption = None,
 ) -> None:
     """离线展示内置的模拟故障报告。"""
+    _validate_output(output_format, output)
     _emit(load_demo(), output_format, output)
 
 
@@ -91,6 +104,7 @@ def analyze_nginx_command(
     request_path: Annotated[str | None, typer.Option("--request-path", help="按不含查询参数的请求路径精确筛选。 ")] = None,
 ) -> None:
     """离线分析本地 Nginx 错误日志。"""
+    _validate_output(output_format, output)
     try:
         report = analyze_nginx_files(path, host=host, request_path=request_path)
     except NginxInputError as error:

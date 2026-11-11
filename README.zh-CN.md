@@ -23,8 +23,11 @@ upstreamlens diagnose https://example.com
 upstreamlens diagnose https://example.com --timeout 3 --format json --output report.json
 upstreamlens demo
 upstreamlens demo --format json
+upstreamlens demo --format html --output demo.html
+upstreamlens diagnose https://example.com --format html --output report.html
 upstreamlens analyze-nginx examples/nginx-error.log
 upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 examples/nginx-error.log.2
+upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 --format html --output nginx-report.html
 upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --request-path /api/health --format json --output nginx-report.json
 ```
 
@@ -42,7 +45,7 @@ upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --req
 
 每个网络阶段默认限时五秒。工具按指定路径和查询参数发出 HTTP GET 请求，读取响应状态和响应头。200 至 399 标为通过，400 至 599 标为失败，其余状态标为未知。重定向只记录状态，不跟随。每项检测使用 PASS、FAIL 或 UNKNOWN。目标为 IP 地址时跳过 DNS，纯 HTTP 跳过 TLS，跳过的检测标为 UNKNOWN。
 
-`--output` 另存为新的 UTF-8 JSON 文件，标准输出仍使用所选格式。已有文件会被保留。报告目标只记录协议、主机和显式指定的端口，省略路径、查询、片段、请求及响应头、原始异常。诊断有失败项时退出码为 1，参数或文件写入错误为 2，其余为 0。离线演示成功显示时返回 0。
+使用 `--format text` 或 `--format json` 时，`--output` 另存为新的 UTF-8 JSON 文件，标准输出仍使用所选格式。HTML 报告须指定 `--format html --output PATH`，生成独立的 UTF-8 文件，不包含脚本、外部资源或联网请求，可在浏览器中离线打开。项目内的 [HTML 演示报告](examples/demo-report.html)完全使用模拟数据。已有文件会被保留。报告目标只记录协议、主机和显式指定的端口，省略路径、查询、片段、请求及响应头、原始异常。诊断有失败项时退出码为 1，参数或文件写入错误为 2，其余为 0。离线演示成功显示时返回 0。
 
 ## 限制和安全
 

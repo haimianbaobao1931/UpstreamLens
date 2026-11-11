@@ -13,7 +13,7 @@ license-files = ["LICENSE"]
 dependencies = ["typer>=0.16,<1", "rich>=13,<16"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "build>=1,<2"]
+dev = ["pytest>=8,<10", "build>=1,<2", "setuptools>=77"]
 
 [project.scripts]
 upstreamlens = "upstreamlens.cli:main"

@@ -3,3 +3,4 @@ include CHANGELOG.md
 include examples/nginx-error.log
 include examples/nginx-error.log.1
 include examples/nginx-error.log.2
+include examples/demo-report.html

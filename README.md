@@ -23,8 +23,11 @@ upstreamlens diagnose https://example.com
 upstreamlens diagnose https://example.com --timeout 3 --format json --output report.json
 upstreamlens demo
 upstreamlens demo --format json
+upstreamlens demo --format html --output demo.html
+upstreamlens diagnose https://example.com --format html --output report.html
 upstreamlens analyze-nginx examples/nginx-error.log
 upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 examples/nginx-error.log.2
+upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 --format html --output nginx-report.html
 upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --request-path /api/health --format json --output nginx-report.json
 ```
 
@@ -42,7 +45,7 @@ Input is limited to a regular file of 10 MiB, 100,000 lines, and 64 KiB per line
 
 The default timeout is five seconds per network phase. The tool runs an HTTP GET against the supplied path and query and reads the response status and headers. Statuses 200–399 pass the HTTP check. Statuses 400–599 fail it. Other statuses are reported as unknown. Redirects are recorded and never followed. Reports show PASS, FAIL, or UNKNOWN for each check. An IP literal skips DNS, and plain HTTP skips TLS. Skipped checks are marked UNKNOWN.
 
-`--output` writes a new UTF-8 JSON file and preserves the selected display format on standard output. Existing files are preserved. The report target contains the origin only. Reports omit the request path, query, fragment, headers, and raw errors. The diagnostic command exits with 1 if any check fails, 2 for invalid arguments or output errors, and 0 otherwise. The offline demo exits with 0 on successful display.
+With `--format text` or `--format json`, `--output` writes a new UTF-8 JSON file and preserves the selected display format on standard output. HTML output requires `--format html --output PATH` and creates a standalone UTF-8 file without scripts, external assets, or network access. Open it locally in a browser. The included [HTML demonstration](examples/demo-report.html) uses only simulated data. Existing files are preserved. The report target contains the origin only. Reports omit the request path, query, fragment, headers, and raw errors. The diagnostic command exits with 1 if any check fails, 2 for invalid arguments or output errors, and 0 otherwise. The offline demo exits with 0 on successful display.
 
 ## Limits and safety
 
