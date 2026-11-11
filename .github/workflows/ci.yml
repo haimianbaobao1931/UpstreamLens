@@ -1,0 +1,47 @@
+name: 持续集成
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 设置 Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 安装项目及开发依赖
+        run: python -m pip install -e ".[dev]"
+
+      - name: 运行测试
+        run: pytest -q
+
+      - name: 验证命令行帮助
+        run: upstreamlens --help
+
+      - name: 验证离线演示
+        run: upstreamlens demo
+
+      - name: 构建安装包和源码归档
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: python -m build

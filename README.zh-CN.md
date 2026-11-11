@@ -46,3 +46,11 @@ upstreamlens demo --format json
 ```
 
 测试使用替身和本机回环套接字。构建在 `dist/` 生成安装包和源码归档。
+
+## 持续集成
+
+[GitHub Actions 工作流](.github/workflows/ci.yml)在推送和拉取请求时运行。工作流进入默认分支后，也可在 Actions 页面手动运行。矩阵覆盖 Windows 和 Ubuntu，分别使用 Python 3.11 和 3.12。每组安装 `.[dev]`、运行 `pytest -q`，并检查命令行帮助和离线演示。Ubuntu 与 Python 3.12 的组合额外构建安装包和源码归档。
+
+测试使用替身和回环套接字，无需公网诊断目标或私有配置。工作流只读取仓库内容，构建产物留在运行环境内，无上传或发布步骤。
+
+本轮已在 Windows 11、PowerShell 7.6 和 Python 3.11.4 上完成本地验证。Ubuntu、Python 3.12 和 GitHub 托管运行仍待验证。

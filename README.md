@@ -46,3 +46,11 @@ The default timeout is five seconds per network phase. The tool runs an HTTP GET
 ```
 
 Tests use mocks and local loopback sockets. Building produces a wheel and a source archive under `dist/`.
+
+## Continuous integration
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) runs on pushes and pull requests. Once the workflow is on the default branch, it can also be run manually from the Actions tab. The matrix covers Windows and Ubuntu with Python 3.11 and 3.12. Each job installs `.[dev]`, runs `pytest -q`, and checks the CLI help and offline demo. The Ubuntu job on Python 3.12 also builds both distribution files.
+
+The tests use mocks and loopback sockets and require no external diagnostic target or private configuration. The workflow uses read-only repository contents permissions and keeps builds on the runner without uploading or publishing them.
+
+Local validation for this change was performed on Windows 11 with PowerShell 7.6 and Python 3.11.4. Ubuntu, Python 3.12, and hosted GitHub Actions runs are pending.
