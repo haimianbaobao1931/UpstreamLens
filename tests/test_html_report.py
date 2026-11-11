@@ -298,3 +298,35 @@ def test_wheel_install_generates_html_without_network(tmp_path):
     )
     assert run.returncode == 0, run.stderr.decode("utf-8", "replace")
     assert "SIMULATED / 模拟数据" in output.read_text(encoding="utf-8")
+
+
+def test_html_shows_the_fault_window(logs, tmp_path):
+    output = tmp_path / "窗口.html"
+    args = ["analyze-nginx", *(str(path) for path in logs), "--format", "html", "--output", str(output)]
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 0
+    document = output.read_text(encoding="utf-8")
+    assert "故障时间范围" in document
+    assert "2026/01/02 03:04:05 至 2026/01/02 03:04:05（0 秒）" in document
+
+
+def test_html_states_when_the_window_has_no_matching_records(logs, tmp_path):
+    output = tmp_path / "无匹配.html"
+    args = ["analyze-nginx", *(str(path) for path in logs), "--host", "missing.example",
+            "--format", "html", "--output", str(output)]
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 0
+    document = output.read_text(encoding="utf-8")
+    assert "故障时间范围" in document
+    assert "无符合筛选的记录" in document
+
+
+def test_demo_html_shows_phase_durations_and_certificate_days(tmp_path):
+    output = tmp_path / "时长.html"
+    result = CliRunner().invoke(cli.app, ["demo", "--format", "html", "--output", str(output)])
+    assert result.exit_code == 0
+    document = output.read_text(encoding="utf-8")
+    assert "耗时（毫秒）" in document
+    assert "<dd>47</dd>" in document
+    assert "剩余有效天数" in document
+    assert "<dd>44</dd>" in document

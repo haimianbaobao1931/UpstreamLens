@@ -4,10 +4,21 @@
   "source": "simulated",
   "checks": [
     {"name": "URL", "status": "PASS", "evidence": {"host": "gateway.example", "port": 443}},
-    {"name": "DNS", "status": "PASS", "evidence": {"addresses": ["192.0.2.10"]}},
-    {"name": "TCP", "status": "PASS", "evidence": {"address": "192.0.2.10", "port": 443}},
-    {"name": "TLS", "status": "PASS", "evidence": {"version": "TLSv1.3", "certificate": "模拟证书校验通过"}},
-    {"name": "HTTP", "status": "FAIL", "evidence": {"status_code": 502}},
+    {"name": "DNS", "status": "PASS", "evidence": {"addresses": ["192.0.2.10"], "duration_ms": 12}},
+    {"name": "TCP", "status": "PASS", "evidence": {"address": "192.0.2.10", "port": 443, "duration_ms": 31}},
+    {
+      "name": "TLS",
+      "status": "PASS",
+      "evidence": {
+        "version": "TLSv1.3",
+        "certificate": "模拟证书校验通过",
+        "valid_from": "Jan  1 00:00:00 2026 GMT",
+        "valid_until": "Feb 14 00:00:00 2027 GMT",
+        "expires_in_days": 44,
+        "duration_ms": 28
+      }
+    },
+    {"name": "HTTP", "status": "FAIL", "evidence": {"status_code": 502, "duration_ms": 47}},
     {
       "name": "后端连接",
       "status": "FAIL",

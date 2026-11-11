@@ -1,6 +1,7 @@
 import http.client
 import io
 import ipaddress
+import math
 import socket
 import ssl
 import time
@@ -11,6 +12,20 @@ from typing import Protocol
 
 from .models import Evidence
 from .target import Target
+
+SECONDS_PER_DAY = 86_400
+
+
+def certificate_days_remaining(not_after: str, *, now: float | None = None) -> int | None:
+    """返回证书剩余有效天数，无法解析证书时间时返回 None。
+
+    证书到期时间使用 UTC，剩余天数向下取整，已过期证书返回负数。
+    """
+    try:
+        expires = ssl.cert_time_to_seconds(not_after)
+    except (TypeError, ValueError):
+        return None
+    return math.floor((expires - (time.time() if now is None else now)) / SECONDS_PER_DAY)
 
 
 @dataclass(frozen=True)
@@ -142,6 +157,11 @@ class SocketProbe:
             if certificate:
                 evidence["valid_from"] = str(certificate.get("notBefore", "未知"))
                 evidence["valid_until"] = str(certificate.get("notAfter", "未知"))
+                remaining = certificate_days_remaining(
+                    str(certificate.get("notAfter", "")), now=time.time()
+                )
+                if remaining is not None:
+                    evidence["expires_in_days"] = remaining
         except BaseException:
             secured.close()
             raise

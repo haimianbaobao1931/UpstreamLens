@@ -310,3 +310,97 @@ def test_legacy_demo_json_remains_unchanged():
     assert data["source"] == "simulated"
     assert "schema_version" not in data
     assert data["checks"][-2]["evidence"]["status_code"] == 502
+
+
+def record(timestamp, message, fields=FIELDS):
+    return f"{timestamp} [error] 101#101: *1 {message}{fields}"
+
+
+def sized_record(size):
+    """构造一条总字节数恰为 size 的有效记录。"""
+    head = (PREFIX + REFUSED).encode("utf-8")
+    padding = size - len(head) - 1
+    assert padding > 0
+    return head + b" " + b"y" * padding
+
+
+@pytest.mark.parametrize("terminator", [b"\n", b"\r\n", b""])
+def test_record_at_line_limit_is_accepted_with_any_terminator(tmp_path, terminator):
+    line = sized_record(MAX_LINE_BYTES)
+    assert len(line) == MAX_LINE_BYTES
+    path = tmp_path / "limit.log"
+    path.write_bytes(line + terminator)
+    report = analyze_nginx_file(path)
+    assert report.total_lines == 1
+    assert report.fault_counts["connection_refused"] == 1
+
+
+@pytest.mark.parametrize("terminator", [b"\n", b""])
+def test_record_above_line_limit_is_rejected_when_terminated(tmp_path, terminator):
+    path = tmp_path / "over.log"
+    path.write_bytes(sized_record(MAX_LINE_BYTES + 1) + terminator)
+    with pytest.raises(NginxInputError, match="64 KiB"):
+        analyze_nginx_file(path)
+
+
+def test_summary_counts_unconfirmed_records_instead_of_claiming_none(tmp_path):
+    path = write_log(tmp_path, (PREFIX + REFUSED + "\n") * 3)
+    report = analyze_nginx_file(path, host="gateway.example")
+
+    assert report.valid_events == 3
+    assert report.matched_events == 0
+    assert report.unconfirmed_events == 3
+    # 已识别但无法关联的记录不能报告成“没有故障记录”。
+    assert "没有符合筛选条件的已识别故障事件" not in report.summary
+    assert "3 条" in report.summary
+    assert report.confidence == "low"
+    assert any("未计入故障数量" in item for item in report.confidence_basis)
+
+
+def test_summary_reports_no_records_only_when_none_are_recognized(tmp_path):
+    path = write_log(tmp_path, "plain text line\n")
+    report = analyze_nginx_file(path)
+
+    assert report.valid_events == 0
+    assert report.unconfirmed_events == 0
+    assert report.summary == "没有符合筛选条件的已识别故障事件。"
+    assert report.confidence == "unknown"
+
+
+def test_fault_window_covers_only_matched_records(tmp_path):
+    path = write_log(tmp_path, "\n".join([
+        record("2026/01/02 05:30:00", REFUSED),
+        record("2026/01/02 03:04:05", TIMEOUT),
+        record("2026/01/02 23:59:59", REFUSED, FIELDS.replace('host: "gateway.example"', 'host: "other.example"')),
+        "2026/01/02 00:00:01 [error] 101#101: *4 " + REFUSED,
+        record("2026/01/02 07:00:00", CLOSED),
+    ]) + "\n")
+    report = analyze_nginx_file(path, host="gateway.example")
+
+    assert report.matched_events == 3
+    assert report.first_fault_timestamp == "2026/01/02 03:04:05"
+    assert report.last_fault_timestamp == "2026/01/02 07:00:00"
+    assert report.fault_span_seconds == 3 * 3600 + 55 * 60 + 55
+
+
+def test_fault_window_is_absent_without_matches(tmp_path):
+    path = write_log(tmp_path, record("2026/01/02 03:04:05", REFUSED) + "\n")
+    report = analyze_nginx_file(path, host="missing.example")
+
+    assert report.unmatched_events == 1
+    assert report.first_fault_timestamp is None
+    assert report.last_fault_timestamp is None
+    assert report.fault_span_seconds is None
+
+
+def test_text_and_json_show_the_same_fault_window(tmp_path):
+    path = write_log(tmp_path, record("2026/01/02 03:04:05", REFUSED) + "\n"
+                     + record("2026/01/02 07:00:00", CLOSED) + "\n")
+    text = CliRunner().invoke(app, ["analyze-nginx", str(path)])
+    structured = CliRunner().invoke(app, ["analyze-nginx", str(path), "--format", "json"])
+    assert text.exit_code == structured.exit_code == 0
+    data = json.loads(structured.stdout)
+    assert data["first_fault_timestamp"] == "2026/01/02 03:04:05"
+    assert data["last_fault_timestamp"] == "2026/01/02 07:00:00"
+    assert data["fault_span_seconds"] == 14155
+    assert "故障时间范围 2026/01/02 03:04:05 至 2026/01/02 07:00:00（14155 秒）" in text.stdout

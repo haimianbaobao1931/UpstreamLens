@@ -1,5 +1,6 @@
 import json
 import socket
+import ssl
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from queue import Queue
@@ -10,7 +11,7 @@ import pytest
 from typer.testing import CliRunner
 
 from upstreamlens.cli import app
-from upstreamlens.network import Address, SocketProbe
+from upstreamlens.network import Address, SocketProbe, certificate_days_remaining
 from upstreamlens.target import parse_target
 
 
@@ -84,11 +85,13 @@ def test_loopback_redirect_reports_status_without_following_or_leaking(monkeypat
     assert requests.empty()
     assert "secret" not in result.output
     report = json.loads(result.stdout)
-    assert report["checks"][-1] == {
-        "name": "HTTP",
-        "status": "PASS",
-        "evidence": {"status_code": 302, "detail": "未跟随重定向"},
-    }
+    http_check = report["checks"][-1]
+    assert http_check["name"] == "HTTP"
+    assert http_check["status"] == "PASS"
+    assert http_check["evidence"]["status_code"] == 302
+    assert http_check["evidence"]["detail"] == "未跟随重定向"
+    assert isinstance(http_check["evidence"]["duration_ms"], int)
+    assert http_check["evidence"]["duration_ms"] >= 0
 
 
 def test_loopback_unlistened_port_is_a_diagnostic_failure():
@@ -102,3 +105,46 @@ def test_loopback_unlistened_port_is_a_diagnostic_failure():
     assert report["checks"][2]["status"] == "FAIL"
     assert report["checks"][2]["evidence"]["detail"] == "连接被拒绝"
     assert report["checks"][-1]["status"] == "UNKNOWN"
+
+
+RELEASE = 1767225600  # 2026-01-01T00:00:00Z
+
+
+@pytest.mark.parametrize(
+    ("not_after", "now", "expected"),
+    [
+        ("Jan  1 00:00:00 2026 GMT", RELEASE, 0),
+        ("Jan 15 00:00:00 2026 GMT", RELEASE, 14),
+        ("Jan 15 00:00:00 2026 GMT", RELEASE - 86399, 14),
+        ("Jan 15 00:00:00 2026 GMT", RELEASE + 86400, 13),
+        ("Dec 31 00:00:00 2025 GMT", RELEASE, -1),
+    ],
+)
+def test_certificate_days_remaining_rounds_down(not_after, now, expected):
+    assert certificate_days_remaining(not_after, now=now) == expected
+
+
+@pytest.mark.parametrize("not_after", ["", "not a date", "Jan 15 2026 GMT"])
+def test_certificate_days_remaining_returns_none_for_unparsable_value(not_after):
+    assert certificate_days_remaining(not_after, now=RELEASE) is None
+
+
+def test_tls_probe_records_certificate_expiry(monkeypatch):
+    certificate = {
+        "notBefore": "Jan  1 00:00:00 2026 GMT",
+        "notAfter": "Jan 15 00:00:00 2026 GMT",
+    }
+    secured = Mock()
+    secured.version.return_value = "TLSv1.3"
+    secured.getpeercert.return_value = certificate
+    context = Mock()
+    context.wrap_socket.return_value = secured
+    monkeypatch.setattr(ssl, "create_default_context", lambda: context)
+    monkeypatch.setattr(time, "time", lambda: RELEASE)
+
+    connection = Mock()
+    _, evidence = SocketProbe().tls(connection, parse_target("https://site.example"), 1)
+
+    assert evidence["valid_until"] == "Jan 15 00:00:00 2026 GMT"
+    assert evidence["expires_in_days"] == 14
+    secured.do_handshake.assert_called_once_with()

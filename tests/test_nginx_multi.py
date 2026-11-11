@@ -255,3 +255,51 @@ def test_multi_json_output_file_matches_stdout(logs, tmp_path):
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 0
     assert json.loads(output.read_text(encoding="utf-8")) == json.loads(result.stdout)
+
+
+def line(timestamp, message, fields=FIELDS):
+    return f"{timestamp} [error] 101#101: *1 {message}{fields}"
+
+
+@pytest.mark.parametrize("terminator", [b"\n", b"\r\n"])
+def test_line_limit_counts_content_not_the_terminator(logs, terminator):
+    head = (PREFIX + REFUSED).encode("utf-8")
+    line_bytes = head + b" " + b"y" * (nginx.MAX_LINE_BYTES - len(head) - 1)
+    assert len(line_bytes) == nginx.MAX_LINE_BYTES
+    logs[0].write_bytes(line_bytes + terminator)
+    report = nginx.analyze_nginx_files(logs[:2])
+
+    assert report.files[0].valid_events == 1
+    assert report.fault_counts["connection_refused"] == 1
+    assert report.files[1].fault_counts["upstream_timed_out"] == 1
+
+
+def test_line_above_limit_is_rejected_in_multi_mode(logs):
+    head = (PREFIX + REFUSED).encode("utf-8")
+    logs[1].write_bytes(head + b" " + b"y" * (nginx.MAX_LINE_BYTES - len(head)))
+    with pytest.raises(nginx.NginxInputError, match="输入文件 2：日志行超过 64 KiB"):
+        nginx.analyze_nginx_files(logs[:2])
+
+
+def test_multi_fault_window_is_aggregate_and_per_file(logs):
+    logs[0].write_text(line("2026/01/02 05:00:00", NO_LIVE) + "\n", encoding="utf-8")
+    logs[1].write_text(line("2026/01/01 23:00:00", NO_LIVE) + "\n", encoding="utf-8")
+    report = nginx.analyze_nginx_files(logs[:2])
+
+    assert report.first_fault_timestamp == "2026/01/01 23:00:00"
+    assert report.last_fault_timestamp == "2026/01/02 05:00:00"
+    assert report.fault_span_seconds == 6 * 3600
+    assert [(file.first_fault_timestamp, file.last_fault_timestamp, file.fault_span_seconds)
+            for file in report.files] == [
+        ("2026/01/02 05:00:00", "2026/01/02 05:00:00", 0),
+        ("2026/01/01 23:00:00", "2026/01/01 23:00:00", 0),
+    ]
+
+
+def test_multi_fault_window_is_absent_when_nothing_matches(logs):
+    report = nginx.analyze_nginx_files(logs[:2], host="missing.example")
+
+    assert report.matched_events == 0
+    assert report.first_fault_timestamp is None
+    assert report.fault_span_seconds is None
+    assert all(file.first_fault_timestamp is None for file in report.files)

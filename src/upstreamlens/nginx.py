@@ -29,6 +29,7 @@ _HEADER = re.compile(
 _FIELDS_START = re.compile(r", (?:client|server|request|upstream|host|referrer): ")
 _FIELD = re.compile(r', (client|server|request|upstream|host|referrer): (?:("(?:[^"\\]|\\.)*")|([^,]*))')
 _REQUEST = re.compile(r"([A-Z]+) (/[^\s]*) HTTP/\d(?:\.\d)?")
+_TIMESTAMP_FORMAT = "%Y/%m/%d %H:%M:%S"
 _METHODS = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE", "PATCH"}
 _ERRORS = {
     "connection_refused": (re.compile(r"^(connect\(\) failed \(\d{1,6}: Connection refused\))(?:\s|$)"), ""),
@@ -46,6 +47,20 @@ class NginxInputError(ValueError):
 class _Budget:
     bytes_read: int = 0
     lines_read: int = 0
+
+
+def _content(raw: bytes) -> bytes:
+    """去掉单行终止符，返回计入 64 KiB 行限制的内容。
+
+    ``readline`` 最多返回 ``MAX_LINE_BYTES + 2`` 字节：普通行带一个 ``\\n``，
+    Windows 行带 ``\\r\\n``，超长行被截断且没有终止符。终止符不计入行限制，
+    因此最后一行与其它行按同一标准判断。
+    """
+    if raw.endswith(b"\n"):
+        raw = raw[:-1]
+        if raw.endswith(b"\r"):
+            raw = raw[:-1]
+    return raw
 
 
 def _host(value: str) -> str | None:
@@ -95,7 +110,7 @@ def _event(line: str, line_number: int) -> tuple[NginxEvidence, str | None, str 
         return None
     timestamp, severity, body = header.groups()
     try:
-        datetime.strptime(timestamp, "%Y/%m/%d %H:%M:%S")
+        datetime.strptime(timestamp, _TIMESTAMP_FORMAT)
     except ValueError:
         return None
     start = _FIELDS_START.search(body)
@@ -142,10 +157,30 @@ def analyze_nginx_file(
         raise NginxInputError("请求路径筛选参数无效，请提供不含查询参数的绝对路径。")
 
     report = NginxReport(
-        "2.0", "user_supplied_log", 0, 0, 0, None, 0, 0, 0,
-        {kind: 0 for kind in _ERRORS}, [], "", "unknown", [], [], [], [],
+        schema_version="2.0",
+        source="user_supplied_log",
+        total_lines=0,
+        valid_events=0,
+        unrecognized_lines=0,
+        duplicate_lines=None,
+        matched_events=0,
+        unmatched_events=0,
+        unconfirmed_events=0,
+        fault_counts={kind: 0 for kind in _ERRORS},
+        evidence=[],
+        summary="",
+        confidence="unknown",
+        confidence_basis=[],
+        possible_causes=[],
+        unconfirmed=[],
+        suggestions=[],
+        first_fault_timestamp=None,
+        last_fault_timestamp=None,
+        fault_span_seconds=None,
     )
     samples: dict[tuple[str, str], int] = {}
+    first_fault: str | None = None
+    last_fault: str | None = None
     try:
         if not stat.S_ISREG(path.stat().st_mode):
             raise NginxInputError("日志必须是普通本地文件。")
@@ -162,7 +197,7 @@ def analyze_nginx_file(
                 raise NginxInputError("日志超过 10 MiB 限制。")
             size = 0
             while True:
-                raw = file.readline(MAX_LINE_BYTES + 1)
+                raw = file.readline(MAX_LINE_BYTES + 2)
                 if not raw:
                     break
                 size += len(raw)
@@ -175,12 +210,13 @@ def analyze_nginx_file(
                         raise NginxInputError("多文件总行数超过 200000 行限制。")
                 if size > MAX_FILE_BYTES:
                     raise NginxInputError("日志超过 10 MiB 限制。")
-                if len(raw) > MAX_LINE_BYTES:
+                content = _content(raw)
+                if len(content) > MAX_LINE_BYTES:
                     raise NginxInputError("日志行超过 64 KiB 限制。")
                 report.total_lines += 1
                 if report.total_lines > MAX_LINES:
                     raise NginxInputError("日志超过 100000 行限制。")
-                line = raw.decode("utf-8").rstrip("\r\n")
+                line = content.decode("utf-8")
                 parsed = _event(line, report.total_lines)
                 if parsed is None:
                     report.unrecognized_lines += 1
@@ -201,6 +237,11 @@ def analyze_nginx_file(
                 else:
                     report.matched_events += 1
                     report.fault_counts[evidence.error_type] += 1
+                    # 故障时间范围只统计计入故障数量的记录；时间文本宽度固定，可按字符串比较。
+                    if first_fault is None or evidence.timestamp < first_fault:
+                        first_fault = evidence.timestamp
+                    if last_fault is None or evidence.timestamp > last_fault:
+                        last_fault = evidence.timestamp
                 group = (evidence.correlation, evidence.error_type)
                 if samples.get(group, 0) < MAX_SAMPLES_PER_GROUP:
                     report.evidence.append(evidence)
@@ -211,6 +252,15 @@ def analyze_nginx_file(
         raise NginxInputError("无法读取日志文件，请检查文件是否存在及读取权限。") from None
     if report.total_lines == 0:
         raise NginxInputError("日志文件为空。")
+    if first_fault is not None and last_fault is not None:
+        report.first_fault_timestamp = first_fault
+        report.last_fault_timestamp = last_fault
+        report.fault_span_seconds = int(
+            (
+                datetime.strptime(last_fault, _TIMESTAMP_FORMAT)
+                - datetime.strptime(first_fault, _TIMESTAMP_FORMAT)
+            ).total_seconds()
+        )
     analyze_nginx(report)
     return report
 
@@ -254,7 +304,7 @@ def analyze_nginx_files(
                 file_bytes = 0
                 file_lines = 0
                 while True:
-                    raw = file.readline(MAX_LINE_BYTES + 1)
+                    raw = file.readline(MAX_LINE_BYTES + 2)
                     if not raw:
                         break
                     file_bytes += len(raw)
@@ -263,7 +313,7 @@ def analyze_nginx_files(
                     total_lines += 1
                     if file_bytes > MAX_FILE_BYTES:
                         raise NginxInputError("日志超过 10 MiB 限制。")
-                    if len(raw) > MAX_LINE_BYTES:
+                    if len(_content(raw)) > MAX_LINE_BYTES:
                         raise NginxInputError("日志行超过 64 KiB 限制。")
                     if file_lines > MAX_LINES:
                         raise NginxInputError("日志超过 100000 行限制。")
@@ -271,7 +321,7 @@ def analyze_nginx_files(
                         raise NginxInputError("多文件总大小超过 30 MiB 限制。")
                     if total_lines > MAX_TOTAL_LINES:
                         raise NginxInputError("多文件总行数超过 200000 行限制。")
-                    raw.decode("utf-8")
+                    _content(raw).decode("utf-8")
                 if not file_lines:
                     raise NginxInputError("日志文件为空。")
             identities.add(identity)
@@ -294,16 +344,43 @@ def analyze_nginx_files(
             raise NginxInputError(f"输入文件 {index}：{error}") from None
 
     result = NginxMultiReport(
-        "3.0", "user_supplied_log", 0, 0, 0, None, 0, 0, 0,
-        {kind: 0 for kind in _ERRORS}, [], "", "unknown", [], [], [], [], [],
+        schema_version="3.0",
+        source="user_supplied_log",
+        total_lines=0,
+        valid_events=0,
+        unrecognized_lines=0,
+        duplicate_lines=None,
+        matched_events=0,
+        unmatched_events=0,
+        unconfirmed_events=0,
+        fault_counts={kind: 0 for kind in _ERRORS},
+        evidence=[],
+        summary="",
+        confidence="unknown",
+        confidence_basis=[],
+        possible_causes=[],
+        unconfirmed=[],
+        suggestions=[],
+        first_fault_timestamp=None,
+        last_fault_timestamp=None,
+        fault_span_seconds=None,
+        files=[],
     )
     samples: dict[tuple[str, str], int] = {}
     for index, report in enumerate(reports, 1):
         source = f"file-{index}"
         result.files.append(NginxFileStats(
-            source, report.total_lines, report.valid_events, report.unrecognized_lines,
-            report.matched_events, report.unmatched_events, report.unconfirmed_events,
-            report.fault_counts.copy(),
+            source_file=source,
+            total_lines=report.total_lines,
+            valid_events=report.valid_events,
+            unrecognized_lines=report.unrecognized_lines,
+            matched_events=report.matched_events,
+            unmatched_events=report.unmatched_events,
+            unconfirmed_events=report.unconfirmed_events,
+            fault_counts=report.fault_counts.copy(),
+            first_fault_timestamp=report.first_fault_timestamp,
+            last_fault_timestamp=report.last_fault_timestamp,
+            fault_span_seconds=report.fault_span_seconds,
         ))
         result.total_lines += report.total_lines
         result.valid_events += report.valid_events
@@ -318,6 +395,20 @@ def analyze_nginx_files(
             if samples.get(group, 0) < MAX_SAMPLES_PER_GROUP:
                 result.evidence.append(NginxFileEvidence(**asdict(evidence), source_file=source))
                 samples[group] = samples.get(group, 0) + 1
+    windows = [
+        (report.first_fault_timestamp, report.last_fault_timestamp)
+        for report in reports
+        if report.first_fault_timestamp is not None and report.last_fault_timestamp is not None
+    ]
+    if windows:
+        result.first_fault_timestamp = min(first for first, _ in windows)
+        result.last_fault_timestamp = max(last for _, last in windows)
+        result.fault_span_seconds = int(
+            (
+                datetime.strptime(result.last_fault_timestamp, _TIMESTAMP_FORMAT)
+                - datetime.strptime(result.first_fault_timestamp, _TIMESTAMP_FORMAT)
+            ).total_seconds()
+        )
     analyze_nginx(result)
     result.unconfirmed.append("不同文件可能包含重叠记录，汇总可能重复计算。")
     return result
