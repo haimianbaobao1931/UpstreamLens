@@ -16,8 +16,8 @@ def render_json(report: Report | NginxReport) -> str:
 def render_nginx(report: NginxReport, console: Console) -> None:
     console.print("用户提供的 Nginx 日志", markup=False)
     console.print(
-        f"总行数 {report.total_lines}  有效事件 {report.valid_events}  "
-        f"未识别 {report.unrecognized_lines}  重复 {report.duplicate_lines}",
+        f"总行数 {report.total_lines}  有效记录 {report.valid_events}  "
+        f"未识别 {report.unrecognized_lines}",
         markup=False,
     )
     console.print(

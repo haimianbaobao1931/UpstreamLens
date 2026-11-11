@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -51,13 +52,71 @@ def test_connection_refusal_is_not_claimed_to_be_stopped_process(tmp_path):
     assert any("进程状态" in item for item in report.unconfirmed)
 
 
-def test_deduplicates_exact_lines_and_counts_other_events(tmp_path):
+def test_identical_lines_are_counted_as_separate_records(tmp_path):
     first = PREFIX + REFUSED + FIELDS
     second = PREFIX.replace("*1", "*2") + TIMEOUT + FIELDS
     report = analyze_nginx_file(write_log(tmp_path, first + "\n" + first + "\n" + second + "\n"))
-    assert (report.total_lines, report.valid_events, report.duplicate_lines) == (3, 2, 1)
-    assert report.fault_counts["connection_refused"] == 1
+    # 相同行不能证明属于同一请求，必须分别统计物理记录。
+    assert (report.total_lines, report.valid_events, report.duplicate_lines) == (3, 3, None)
+    assert report.matched_events == 3
+    assert report.fault_counts["connection_refused"] == 2
     assert report.fault_counts["upstream_timed_out"] == 1
+    assert [item.line for item in report.evidence] == [1, 2, 3]
+
+
+def test_ten_identical_records_counted_despite_sample_limit(tmp_path):
+    line = PREFIX + REFUSED + FIELDS
+    report = analyze_nginx_file(write_log(tmp_path, (line + "\n") * 10))
+    assert report.total_lines == report.valid_events == report.matched_events == 10
+    assert report.fault_counts["connection_refused"] == 10
+    assert len(report.evidence) == 3
+    assert [item.line for item in report.evidence] == [1, 2, 3]
+    assert any("独立 HTTP 请求次数" in item for item in report.unconfirmed)
+
+
+def test_same_error_at_different_times_counts_each_record(tmp_path):
+    first = PREFIX + REFUSED + FIELDS
+    second = first.replace("03:04:05", "03:04:06")
+    report = analyze_nginx_file(write_log(tmp_path, first + "\n" + second))
+    assert report.valid_events == report.matched_events == 2
+    assert report.fault_counts["connection_refused"] == 2
+    assert [item.timestamp for item in report.evidence] == ["2026/01/02 03:04:05", "2026/01/02 03:04:06"]
+
+
+def test_filter_counts_all_repeated_records_by_correlation(tmp_path):
+    matched = PREFIX + REFUSED + FIELDS
+    unmatched = matched.replace('host: "gateway.example"', 'host: "other.example"')
+    unconfirmed = PREFIX + TIMEOUT
+    data = ((matched + "\n") * 4 + (unmatched + "\n") * 2 + (unconfirmed + "\n") * 5)
+    report = analyze_nginx_file(write_log(tmp_path, data), host="gateway.example", request_path="/api/health")
+    assert (report.total_lines, report.valid_events, report.unrecognized_lines) == (11, 11, 0)
+    assert (report.matched_events, report.unmatched_events, report.unconfirmed_events) == (4, 2, 5)
+    assert report.valid_events == report.matched_events + report.unmatched_events + report.unconfirmed_events
+    assert report.fault_counts["connection_refused"] == 4
+    assert report.fault_counts["upstream_timed_out"] == 0
+    assert sum(report.fault_counts.values()) == report.matched_events
+    assert len([item for item in report.evidence if item.correlation == "matched"]) == 3
+    assert len([item for item in report.evidence if item.correlation == "unconfirmed"]) == 3
+
+
+def test_text_and_json_show_same_record_counts(tmp_path):
+    first = PREFIX + REFUSED + FIELDS
+    second = PREFIX + NO_LIVE + FIELDS
+    path = write_log(tmp_path, (first + "\n") * 10 + (second + "\n") * 2 + "unrecognized\n")
+    runner = CliRunner()
+    text = runner.invoke(app, ["analyze-nginx", str(path)])
+    structured = runner.invoke(app, ["analyze-nginx", str(path), "--format", "json"])
+    assert text.exit_code == structured.exit_code == 0
+    data = json.loads(structured.stdout)
+    assert data["total_lines"] == 13
+    assert data["valid_events"] == data["matched_events"] == 12
+    assert data["unrecognized_lines"] == 1
+    assert data["duplicate_lines"] is None
+    assert f"总行数 {data['total_lines']}" in text.stdout
+    assert f"有效记录 {data['valid_events']}" in text.stdout
+    assert f"符合筛选 {data['matched_events']}" in text.stdout
+    for kind, count in data["fault_counts"].items():
+        assert re.search(rf"\b{re.escape(kind)}\s+│\s+{count}\s+│", text.stdout)
 
 
 def test_filter_matches_host_case_port_and_path_without_query(tmp_path):
@@ -200,7 +259,8 @@ def test_json_schema_and_unconfirmed_examples(tmp_path):
     result = CliRunner().invoke(app, ["analyze-nginx", str(path), "--format", "json", "--host", "gateway.example"])
     assert result.exit_code == 0
     data = json.loads(result.stdout)
-    assert data["schema_version"] == "1.0"
+    assert data["schema_version"] == "2.0"
+    assert data["duplicate_lines"] is None
     assert data["source"] == "user_supplied_log"
     assert data["total_lines"] == data["valid_events"] == 2
     assert data["matched_events"] == data["unconfirmed_events"] == 1

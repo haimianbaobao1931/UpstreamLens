@@ -46,7 +46,8 @@ class NginxReport:
     total_lines: int
     valid_events: int
     unrecognized_lines: int
-    duplicate_lines: int
+    # 已废弃，保留字段以便识别旧报告，不再推断重复事件。
+    duplicate_lines: int | None
     matched_events: int
     unmatched_events: int
     unconfirmed_events: int

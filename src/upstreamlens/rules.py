@@ -4,7 +4,7 @@ from .models import NginxReport, Report
 def analyze_nginx(report: NginxReport) -> None:
     report.confidence = "medium" if report.matched_events else "unknown"
     if report.matched_events:
-        report.summary = f"日志中有 {report.matched_events} 条符合筛选条件的已识别事件。"
+        report.summary = f"日志中有 {report.matched_events} 条符合筛选条件的已识别故障记录。"
         report.confidence_basis.append("故障类型来自日志中的标准错误消息，原因仍需其他证据确认。")
     else:
         report.summary = "没有符合筛选条件的已识别故障事件。"
@@ -25,6 +25,7 @@ def analyze_nginx(report: NginxReport) -> None:
         report.suggestions.append("检查上游配置、健康状态和相关错误日志。")
     report.unconfirmed.extend([
         "日志时间未包含时区，无法确认绝对时间。",
+        "日志记录次数无法确定独立 HTTP 请求次数。",
         "上游进程状态、配置和连接失败的具体原因需要其他证据。",
     ])
 

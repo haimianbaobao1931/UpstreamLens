@@ -1,6 +1,5 @@
 """对用户指定的 Nginx 文本日志进行有界、离线分析。"""
 
-import hashlib
 import ipaddress
 import os
 import re
@@ -130,10 +129,9 @@ def analyze_nginx_file(path: Path, *, host: str | None = None, request_path: str
         raise NginxInputError("请求路径筛选参数无效，请提供不含查询参数的绝对路径。")
 
     report = NginxReport(
-        "1.0", "user_supplied_log", 0, 0, 0, 0, 0, 0, 0,
+        "2.0", "user_supplied_log", 0, 0, 0, None, 0, 0, 0,
         {kind: 0 for kind in _ERRORS}, [], "", "unknown", [], [], [], [],
     )
-    seen: set[bytes] = set()
     samples: dict[tuple[str, str], int] = {}
     try:
         if not stat.S_ISREG(path.stat().st_mode):
@@ -162,11 +160,6 @@ def analyze_nginx_file(path: Path, *, host: str | None = None, request_path: str
                 if parsed is None:
                     report.unrecognized_lines += 1
                     continue
-                digest = hashlib.sha256(line.encode("utf-8")).digest()
-                if digest in seen:
-                    report.duplicate_lines += 1
-                    continue
-                seen.add(digest)
                 evidence, event_host, event_path = parsed
                 report.valid_events += 1
                 comparisons = []
