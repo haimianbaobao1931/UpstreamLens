@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-01-01T00:00:00+00:00",
+  "target": "https://gateway.example",
+  "source": "simulated",
+  "checks": [
+    {"name": "URL", "status": "PASS", "evidence": {"host": "gateway.example", "port": 443}},
+    {"name": "DNS", "status": "PASS", "evidence": {"addresses": ["192.0.2.10"]}},
+    {"name": "TCP", "status": "PASS", "evidence": {"address": "192.0.2.10", "port": 443}},
+    {"name": "TLS", "status": "PASS", "evidence": {"version": "TLSv1.3", "certificate": "模拟证书校验通过"}},
+    {"name": "HTTP", "status": "FAIL", "evidence": {"status_code": 502}},
+    {
+      "name": "后端连接",
+      "status": "FAIL",
+      "evidence": {
+        "address": "127.0.0.1",
+        "port": 8080,
+        "detail": "模拟网关错误日志记录了上游连接被拒绝"
+      }
+    }
+  ],
+  "summary": "模拟网关返回 HTTP 502，且模拟网关日志记录了后端连接被拒绝。",
+  "possible_causes": ["模拟后端未监听配置的地址或端口，或连接被主动拒绝。"],
+  "unconfirmed": ["模拟后端进程状态及连接被拒绝的具体原因。"],
+  "suggestions": ["在网关所在环境核对上游配置、监听地址和应用启动日志。"]
+}

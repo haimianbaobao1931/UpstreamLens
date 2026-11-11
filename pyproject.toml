@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "upstreamlens"
+version = "0.1.0"
+description = "Evidence-based deployment diagnostics for a single HTTP or HTTPS URL"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["typer>=0.16,<1", "rich>=13,<16"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "build>=1,<2"]
+
+[project.scripts]
+upstreamlens = "upstreamlens.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+upstreamlens = ["demo.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
