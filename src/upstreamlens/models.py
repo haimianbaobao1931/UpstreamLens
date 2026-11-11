@@ -59,3 +59,25 @@ class NginxReport:
     possible_causes: list[str]
     unconfirmed: list[str]
     suggestions: list[str]
+
+
+@dataclass
+class NginxFileEvidence(NginxEvidence):
+    source_file: str
+
+
+@dataclass
+class NginxFileStats:
+    source_file: str
+    total_lines: int
+    valid_events: int
+    unrecognized_lines: int
+    matched_events: int
+    unmatched_events: int
+    unconfirmed_events: int
+    fault_counts: dict[str, int]
+
+
+@dataclass
+class NginxMultiReport(NginxReport):
+    files: list[NginxFileStats]

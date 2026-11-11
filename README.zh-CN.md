@@ -24,10 +24,15 @@ upstreamlens diagnose https://example.com --timeout 3 --format json --output rep
 upstreamlens demo
 upstreamlens demo --format json
 upstreamlens analyze-nginx examples/nginx-error.log
+upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 examples/nginx-error.log.2
 upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --request-path /api/health --format json --output nginx-report.json
 ```
 
 `examples/nginx-error.log` 是模拟测试数据，使用虚构域名和文档示例 IP。`analyze-nginx` 离线读取用户明确指定的本地 UTF-8 格式 Nginx 错误日志，识别上游连接拒绝、上游超时、上游提前关闭连接以及无可用上游。分析成功的退出码为 0，输入或输出错误的退出码为 2。
+
+三个 `examples/nginx-error.log*` 文件是合成轮转日志。请按需要的顺序显式指定每个文件。多文件输出使用模式 `3.0`，包含汇总计数和 `files` 数组中的文件级计数。来源按输入顺序标为 `file-1`、`file-2` 等，证据包含来源编号与行号，不显示路径或文件名。单文件输出保留模式 `2.0` 和现有字段。记录按输入顺序处理，不按时间重新排序，也不跨文件去重，因此文件内容重叠时可能重复计数。重复输入同一文件或其路径别名会被拒绝。
+
+工具在生成汇总报告前验证所有输入。输入失败时以位置编号指出文件，隐藏路径，也不会写出部分报告。多文件最多 20 个，合计最多 30 MiB 和 200000 行，同时保留原有单文件限制。暂不支持压缩日志或目录自动发现。
 
 可选的主机筛选只匹配日志中的请求 `host` 字段，忽略主机名字母大小写、末尾的点及日志中附带的端口。路径筛选对去掉查询参数后的请求路径进行精确比较。缺少筛选字段的事件标为关联未确认，明确不匹配的事件单独计数。单独的 `server` 字段不能确认请求主机。故障分类数量只统计符合筛选条件的事件，有效事件总数还包含不匹配和未确认事件。
 

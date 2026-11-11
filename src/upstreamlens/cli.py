@@ -10,7 +10,7 @@ from rich.console import Console
 from .demo import load_demo
 from .diagnostic import diagnose
 from .models import NginxReport, Report
-from .nginx import NginxInputError, analyze_nginx_file
+from .nginx import NginxInputError, analyze_nginx_files
 from .render import render_json, render_nginx, render_text
 from .target import InvalidTarget, parse_target
 
@@ -84,7 +84,7 @@ def demo_command(
 
 @app.command("analyze-nginx")
 def analyze_nginx_command(
-    path: Annotated[Path, typer.Argument(help="用户提供的本地 Nginx 错误日志。")],
+    path: Annotated[list[Path], typer.Argument(help="按顺序提供一个或多个本地 Nginx 错误日志。")],
     output_format: FormatOption = ReportFormat.TEXT,
     output: OutputOption = None,
     host: Annotated[str | None, typer.Option("--host", help="按日志中的请求主机精确筛选。 ")] = None,
@@ -92,7 +92,7 @@ def analyze_nginx_command(
 ) -> None:
     """离线分析本地 Nginx 错误日志。"""
     try:
-        report = analyze_nginx_file(path, host=host, request_path=request_path)
+        report = analyze_nginx_files(path, host=host, request_path=request_path)
     except NginxInputError as error:
         typer.echo(str(error), err=True)
         raise typer.Exit(2) from None

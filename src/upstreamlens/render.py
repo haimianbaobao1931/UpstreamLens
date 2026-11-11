@@ -4,7 +4,7 @@ from dataclasses import asdict
 from rich.console import Console
 from rich.table import Table
 
-from .models import NginxReport, Report
+from .models import NginxFileEvidence, NginxMultiReport, NginxReport, Report
 
 _STATUS_COLORS = {"PASS": "green", "FAIL": "red", "UNKNOWN": "yellow"}
 
@@ -30,9 +30,20 @@ def render_nginx(report: NginxReport, console: Console) -> None:
     for kind, count in report.fault_counts.items():
         table.add_row(kind, str(count))
     console.print(table)
+    if isinstance(report, NginxMultiReport):
+        for file in report.files:
+            console.print(
+                f"{file.source_file}  总行数 {file.total_lines}  有效记录 {file.valid_events}  "
+                f"未识别 {file.unrecognized_lines}  符合筛选 {file.matched_events}  "
+                f"不匹配 {file.unmatched_events}  关联未确认 {file.unconfirmed_events}",
+                markup=False,
+            )
+            for kind, count in file.fault_counts.items():
+                console.print(f"{file.source_file}  {kind}  {count}", markup=False)
     for item in report.evidence:
+        source = f"{item.source_file} " if isinstance(item, NginxFileEvidence) else ""
         console.print(
-            f"证据 第 {item.line} 行  {item.timestamp}（时区未知）  "
+            f"证据 {source}第 {item.line} 行  {item.timestamp}（时区未知）  "
             f"{item.severity}  {item.observed}  关联 {item.correlation}", markup=False,
         )
         console.print(

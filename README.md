@@ -24,10 +24,15 @@ upstreamlens diagnose https://example.com --timeout 3 --format json --output rep
 upstreamlens demo
 upstreamlens demo --format json
 upstreamlens analyze-nginx examples/nginx-error.log
+upstreamlens analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 examples/nginx-error.log.2
 upstreamlens analyze-nginx examples/nginx-error.log --host gateway.example --request-path /api/health --format json --output nginx-report.json
 ```
 
 The file `examples/nginx-error.log` contains simulated test data with fictional domains and documentation IP addresses. `analyze-nginx` reads the explicitly supplied local UTF-8 Nginx error log offline. It recognizes connection refusal, upstream timeouts, prematurely closed upstream connections, and no live upstreams. A successful analysis exits with 0. Invalid input or an output error exits with 2.
+
+The three `examples/nginx-error.log*` files are synthetic rotated logs. Specify every file explicitly in the desired order. Multiple inputs produce a schema `3.0` report with aggregate counts and a `files` array of per-file counts. Sources are labeled `file-1`, `file-2`, and so on in input order; evidence includes the source label and line number, without disclosing paths or filenames. Single-file output retains schema `2.0` and its existing fields. Records are not reordered by timestamp or deduplicated across files. Overlap between files can therefore cause repeated counting. Repeated paths and aliases for the same file are rejected.
+
+Analysis validates every input before constructing the aggregate report. When an input fails, the error identifies its position without disclosing its path, and no partial report is written. Multiple inputs are limited to 20 files, 30 MiB and 200,000 lines in total, in addition to the existing per-file limits. Compressed logs and directory discovery are not supported.
 
 The optional host filter matches the logged request `host` field exactly, ignoring hostname case, a trailing dot, and a logged port. The path filter compares the logged request path exactly after removing its query. Events missing a field required by a filter are reported as unconfirmed. Explicit mismatches are counted separately. The server name alone does not establish the request host. Report fault counts cover matching events; valid event counts also include unmatched and unconfirmed events.
 
