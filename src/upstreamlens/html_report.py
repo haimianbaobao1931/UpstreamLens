@@ -16,7 +16,8 @@ _CSS = """
 main{min-width:0;max-width:1440px;width:100%;margin:auto;padding:32px 42px 64px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--muted);font-size:12px}.top strong{color:var(--teal);letter-spacing:.08em}.top span{overflow-wrap:anywhere}.hero{padding:34px 0 25px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.11em;color:var(--teal);text-transform:uppercase}h1{font-size:clamp(27px,3.2vw,42px);line-height:1.18;letter-spacing:-.035em;margin:10px 0 14px}.lead{font-size:16px;color:#425a64;max-width:850px;margin:0;overflow-wrap:anywhere}.badges{display:flex;flex-wrap:wrap;gap:9px;margin:20px 0 0}.badge{display:inline-flex;align-items:center;border:1px solid #c7dcdb;border-radius:5px;background:#e6f3f1;color:#245c59;font-size:12px;font-weight:750;padding:5px 9px}.badge.fail,.badge.simulated{background:#fff1eb;color:#983d2d;border-color:#f0c7b8}.badge.unknown{background:#fff7df;color:#7b5900;border-color:#ead99e}.badge.pass{background:#e6f3e9;color:#226947;border-color:#c1dfca}
 .meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}.meta>div{background:var(--paper);padding:15px 18px;min-width:0}.meta span,.label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.meta strong{font-size:14px;overflow-wrap:anywhere}.section{margin-top:24px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:24px;min-width:0}.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}.section-head h2{margin:0;font-size:18px;letter-spacing:-.02em}.section-head span{color:var(--muted);font-size:12px}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric{background:#f6f9f9;border:1px solid #e6eeee;border-radius:8px;padding:15px;min-width:0}.metric strong{display:block;font-size:27px;line-height:1.1;color:var(--ink);overflow-wrap:anywhere}.metric small{display:block;font-size:12px;color:var(--muted);margin-top:8px}.checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.check,.evidence{border:1px solid var(--line);border-radius:8px;padding:15px;min-width:0}.check-head,.evidence-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.check h3,.evidence h3{font-size:15px;margin:0;overflow-wrap:anywhere}.evidence-list{display:grid;gap:11px}.detail{display:grid;grid-template-columns:105px minmax(0,1fr);gap:6px 12px;margin:13px 0 0;font-size:13px}.detail dt{color:var(--muted)}.detail dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}.empty{color:var(--muted);font-size:14px;margin:0}.bars{display:grid;gap:14px}.bar-row{display:grid;grid-template-columns:minmax(130px,220px) minmax(80px,1fr) 45px;gap:12px;align-items:center;font-size:13px}.bar-row span{overflow-wrap:anywhere}.bar-row strong{text-align:right;font-size:14px}meter{width:100%;height:10px;accent-color:var(--teal)}meter::-webkit-meter-bar{background:#e5eeee;border:0;border-radius:8px;height:8px}meter::-webkit-meter-optimum-value{background:#3a9188;border-radius:8px}meter::-moz-meter-bar{background:#3a9188;border-radius:8px}.grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.box{background:#f6f9f9;border:1px solid #e5eeee;border-radius:8px;padding:17px;min-width:0}.box h3{font-size:14px;margin:0 0 10px}.box ul,.box ol,.plain-list{padding-left:20px;margin:0;color:#364f5a;font-size:14px}.box li,.plain-list li{margin:7px 0;overflow-wrap:anywhere}.files{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;min-width:650px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e8eeee}th{color:var(--muted);font-weight:650}td:first-child{font-weight:700}.foot{color:var(--muted);font-size:12px;margin-top:24px;line-height:1.7}
 @media(max-width:850px){.layout{display:block}.rail{padding:17px 20px}.rail-label,.rail nav,.rail-note{display:none}main{padding:24px 20px 48px}.hero{padding:27px 0 20px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:500px){.top{display:block}.top span{display:block;margin-top:5px}.meta,.checks,.grid-two{grid-template-columns:1fr}.section{padding:18px}.bar-row{grid-template-columns:minmax(105px,1fr) minmax(65px,1fr) 30px;gap:8px}.detail{grid-template-columns:85px minmax(0,1fr)}}
+.meta.simulated-meta{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:500px){.top{display:block}.top span{display:block;margin-top:5px}.meta,.meta.simulated-meta,.checks,.grid-two{grid-template-columns:1fr}.section{padding:18px}.bar-row{grid-template-columns:minmax(105px,1fr) minmax(65px,1fr) 30px;gap:8px}.detail{grid-template-columns:85px minmax(0,1fr)}}
 """
 
 _ANSI = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
@@ -122,7 +123,7 @@ def _network(report: Report) -> tuple[str, str, str, str, str]:
             f'<article class="check"><div class="check-head"><h3>{_safe(check.name)}</h3>'
             f'<span class="badge {status_class}">{_safe(check.status)}</span></div>{_details(values)}</article>'
         )
-    content = _section("检测与证据", "实际报告中的检测项", '<div class="checks">' + "".join(cards) + "</div>", "evidence")
+    content = _section("检测与证据", "本报告中的检测项", '<div class="checks">' + "".join(cards) + "</div>", "evidence")
     content += _explanations(report)
     content += _section("能力范围与限制", "报告解释", '<p class="empty">网络探测仅反映指定目标与端口的检测结果。服务端内部状态需要其他证据确认。</p>', "limits")
     return "网络诊断报告", source, badge, _safe(report.timestamp), content
@@ -186,7 +187,7 @@ def _nginx(report: NginxReport) -> tuple[str, str, str, str, str]:
     return "Nginx 日志诊断报告", "用户提供的日志", badge, _safe(generated), content
 
 
-def render_html(report: Report | NginxReport) -> str:
+def render_html(report: Report | NginxReport, *, generated_at: datetime | None = None) -> str:
     """只使用转义后的报告字段生成完整 HTML 文档。"""
     if isinstance(report, NginxReport):
         title, source, badges, time_value, content = _nginx(report)
@@ -194,8 +195,13 @@ def render_html(report: Report | NginxReport) -> str:
         target = "本地日志 / 已脱敏"
     else:
         title, source, badges, time_value, content = _network(report)
-        time_label = "分析时间"
+        time_label = "模拟场景时间" if report.source == "simulated" else "分析时间"
         target = report.target
+    generated_meta = ""
+    if isinstance(report, Report) and report.source == "simulated":
+        generated = generated_at if generated_at is not None else datetime.now(timezone.utc)
+        generated_meta = f'<div><span>报告生成时间（UTC）</span><strong>{_safe(generated.isoformat(timespec="seconds"))}</strong></div>'
+    meta_class = "meta simulated-meta" if generated_meta else "meta"
     digest = base64.b64encode(hashlib.sha256(_CSS.encode("utf-8")).digest()).decode("ascii")
     policy = f"default-src 'none'; style-src 'sha256-{digest}'; img-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     return f'''<!doctype html>
@@ -208,5 +214,5 @@ def render_html(report: Report | NginxReport) -> str:
 <main><div class="top"><strong>UPSTREAMLENS / DIAGNOSTIC REPORT</strong><span>独立文件 · 离线查看</span></div>
 <header class="hero" id="overview"><div class="eyebrow">Evidence-based diagnostics</div><h1>{_safe(title)}</h1>
 <p class="lead">{_safe(report.summary)}</p><div class="badges">{badges}</div></header>
-<div class="meta"><div><span>{time_label}</span><strong>{time_value}</strong></div><div><span>数据来源</span><strong>{source}</strong></div><div><span>分析目标</span><strong>{_safe(target)}</strong></div></div>
+<div class="{meta_class}"><div><span>{time_label}</span><strong>{time_value}</strong></div>{generated_meta}<div><span>数据来源</span><strong>{source}</strong></div><div><span>分析目标</span><strong>{_safe(target)}</strong></div></div>
 {content}<footer class="foot">UpstreamLens · 此报告根据现有证据生成，具体原因需结合其他信息确认。</footer></main></div></body></html>'''

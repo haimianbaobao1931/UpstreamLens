@@ -56,7 +56,7 @@ def test_loopback_redirect_reports_status_without_following_or_leaking(monkeypat
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            requests.put((self.path, self.headers.get("Authorization"), self.headers.get("Cookie")))
+            requests.put((self.path, self.headers.get("Authorization"), self.headers.get("Cookie"), self.headers.get("User-Agent")))
             self.send_response(302)
             self.send_header("Location", "https://outside.example/secret-location")
             self.send_header("Set-Cookie", "secret-response-cookie")
@@ -80,7 +80,7 @@ def test_loopback_redirect_reports_status_without_following_or_leaking(monkeypat
             thread.join()
 
     assert result.exit_code == 0
-    assert requests.get_nowait() == ("/secret-path?token=secret-query", None, None)
+    assert requests.get_nowait() == ("/secret-path?token=secret-query", None, None, "UpstreamLens/0.5.0")
     assert requests.empty()
     assert "secret" not in result.output
     report = json.loads(result.stdout)

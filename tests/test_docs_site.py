@@ -1,5 +1,7 @@
 import base64
 import hashlib
+import re
+from datetime import datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
@@ -75,8 +77,12 @@ def test_homepage_csp_blocks_scripts_and_external_assets():
 
 
 def test_published_demo_matches_synthetic_report_generator():
-    expected = render_html(load_demo()) + "\n"
     demo = (DOCS / "demo.html").read_text(encoding="utf-8")
+    timestamp = re.search(r"报告生成时间（UTC）</span><strong>([^<]+)</strong>", demo)
+    assert timestamp is not None
+    generated = datetime.fromisoformat(timestamp.group(1))
+    assert generated.utcoffset().total_seconds() == 0
+    expected = render_html(load_demo(), generated_at=generated) + "\n"
     assert expected == (ROOT / "examples" / "demo-report.html").read_text(encoding="utf-8")
     # 站点仅添加内嵌空图标及对应的最小权限，不改变报告内容。
     expected = expected.replace("img-src &#x27;none&#x27;", "img-src data:", 1)

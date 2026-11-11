@@ -1,5 +1,6 @@
 include README.zh-CN.md
 include CHANGELOG.md
+include RELEASE_NOTES.md
 include examples/nginx-error.log
 include examples/nginx-error.log.1
 include examples/nginx-error.log.2

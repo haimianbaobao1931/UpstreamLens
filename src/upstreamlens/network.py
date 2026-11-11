@@ -152,7 +152,7 @@ class SocketProbe:
         request = (
             f"GET {target.request_target} HTTP/1.1\r\n"
             f"Host: {target.authority}\r\n"
-            "User-Agent: UpstreamLens/0.1.0\r\n"
+            "User-Agent: UpstreamLens/0.5.0\r\n"
             "Connection: close\r\n\r\n"
         ).encode("ascii")
         connection.settimeout(_remaining(deadline))

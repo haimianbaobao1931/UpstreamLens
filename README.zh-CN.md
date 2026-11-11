@@ -2,6 +2,8 @@
 
 UpstreamLens 对单个 HTTP 或 HTTPS 网址采集 DNS、TCP、TLS 和 HTTP 证据，帮助定位服务部署故障。报告区分实际观测、可能原因和需要服务端证据才能确认的信息。
 
+当前正在准备 0.5.0 发布候选版本。兼容性和安全边界见[发布说明](RELEASE_NOTES.md)。
+
 [英文说明](README.md)
 
 ## 主要功能
@@ -10,7 +12,7 @@ UpstreamLens 对单个 HTTP 或 HTTPS 网址采集 DNS、TCP、TLS 和 HTTP 证�
 - 离线分析用户指定的 Nginx 错误日志，支持多份轮转文本日志。
 - 输出终端、JSON 和独立离线 HTML 报告，区分观测、可能原因和待确认信息。
 
-`502` 是响应观测。确认实际上游地址、端口或进程状态需要服务端证据。可下载[模拟报告](docs/demo.html)后在本地打开。报告和截图均使用合成数据，不是真实服务器诊断。GitHub Pages 文件已放在 `docs/`，需要仓库所有者启用后才能在线访问。
+`502` 是响应观测。确认实际上游地址、端口或进程状态需要服务端证据。可查看[在线模拟报告](https://haimianbaobao1931.github.io/UpstreamLens/demo.html)，或下载[本地版本](docs/demo.html)后打开。报告和截图均使用合成数据，不是真实服务器诊断。
 
 ![UpstreamLens 模拟诊断报告](docs/report-preview.png)
 

@@ -1,6 +1,6 @@
 # 变更记录
 
-## 未发布
+## 0.5.0 候选版本
 
 - 新增用于 GitHub Pages 的静态介绍首页和模拟报告，完善 Windows 与 Linux 的用户和开发者安装说明。
 - 为网络诊断、模拟演示和 Nginx 日志分析增加独立离线 HTML 报告，包含脱敏证据、统计和排查建议。
@@ -11,6 +11,7 @@
 - 新增 GitHub Actions 持续集成，配置 Windows 和 Ubuntu 上的 Python 3.11、3.12 测试，以及 Ubuntu 上的安装包和源码归档构建。
 - 已在 Windows 11、PowerShell 7.6 和 Python 3.11.4 上完成本地验证，并通过 GitHub Actions 的 Windows、Ubuntu 与 Python 3.11、3.12 四组测试及分发包构建。
 - 修复终端样式控制序列导致帮助选项测试失败的问题，增加带样式输出和选项调用的回归验证。
+- 修正模拟 HTML 报告文案，分别显示模拟场景时间与报告生成时间。
 
 ## 0.1.0
 

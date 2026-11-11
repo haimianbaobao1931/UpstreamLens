@@ -64,7 +64,8 @@ def render_nginx(report: NginxReport, console: Console) -> None:
 def render_text(report: Report, console: Console) -> None:
     source = "模拟数据（离线演示）" if report.source == "simulated" else "实际探测"
     console.print(f"{source}  {report.target}")
-    console.print(f"时间（协调世界时） {report.timestamp}")
+    time_label = "模拟场景时间（协调世界时）" if report.source == "simulated" else "时间（协调世界时）"
+    console.print(f"{time_label} {report.timestamp}")
     table = Table(show_lines=True)
     table.add_column("检测项")
     table.add_column("状态")

@@ -2,6 +2,8 @@
 
 UpstreamLens diagnoses deployment failures for a single HTTP or HTTPS URL by gathering DNS, TCP, TLS, and HTTP evidence. It separates observations, possible causes, and facts that require server-side evidence.
 
+Version 0.5.0 is being prepared as a release candidate. See the [release notes](RELEASE_NOTES.md) for compatibility and safety limits.
+
 [简体中文](README.zh-CN.md)
 
 ## What it does
@@ -10,7 +12,7 @@ UpstreamLens diagnoses deployment failures for a single HTTP or HTTPS URL by gat
 - Analyze explicitly supplied local Nginx error logs, including rotated text files.
 - Produce terminal, JSON, and standalone offline HTML reports that separate observations, possible causes, and unknowns.
 
-`502` is an observed response. Confirming an upstream address, port, or process state requires server-side evidence. Download the [simulated report](docs/demo.html) to open it locally. The report and screenshot use synthetic data, not a real server diagnosis. GitHub Pages files are prepared in `docs/`; online publication requires the repository owner to enable Pages.
+`502` is an observed response. Confirming an upstream address, port, or process state requires server-side evidence. View the [online simulated report](https://haimianbaobao1931.github.io/UpstreamLens/demo.html) or download the [local copy](docs/demo.html). The report and screenshot use synthetic data, not a real server diagnosis.
 
 ![Simulated UpstreamLens diagnostic report](docs/report-preview.png)
 

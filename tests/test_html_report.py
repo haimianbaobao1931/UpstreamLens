@@ -5,6 +5,7 @@ import subprocess
 import sys
 from copy import deepcopy
 from dataclasses import asdict
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -98,6 +99,25 @@ def test_demo_html_marks_simulation_and_preserves_evidence(tmp_path):
     assert "模拟网关" in doc and "502" in doc
     assert "后端连接" in doc and "连接被拒绝" in doc
     assert "HTML 报告已保存" in result.stdout
+
+
+def test_simulation_time_and_generation_time_are_distinct():
+    generated = datetime(2026, 11, 12, 8, 30, tzinfo=timezone.utc)
+    doc = render_html(load_demo(), generated_at=generated)
+    assert "模拟场景时间</span><strong>2026-01-01T00:00:00+00:00" in doc
+    assert "报告生成时间（UTC）</span><strong>2026-11-12T08:30:00+00:00" in doc
+    assert "本报告中的检测项" in doc
+
+
+def test_live_diagnostic_time_retains_its_meaning():
+    report = load_demo()
+    report.source = "live"
+    report.timestamp = "2026-11-11T10:20:30+00:00"
+    doc = render_html(report)
+    assert "分析时间</span><strong>2026-11-11T10:20:30+00:00" in doc
+    assert "模拟场景时间" not in doc
+    assert "报告生成时间（UTC）" not in doc
+    assert "本报告中的检测项" in doc
 
 
 def test_diagnose_html_preserves_actual_statuses_and_uncertainty(monkeypatch, tmp_path):

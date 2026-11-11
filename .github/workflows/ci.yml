@@ -73,5 +73,14 @@ jobs:
           PY
           python3 -m venv "$RUNNER_TEMP/upstreamlens-wheel"
           "$RUNNER_TEMP/upstreamlens-wheel/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" --help
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" demo
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" analyze-nginx examples/nginx-error.log --format json
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" analyze-nginx examples/nginx-error.log examples/nginx-error.log.1 --format json
           "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" demo --format html --output "$RUNNER_TEMP/upstreamlens-wheel-demo.html"
           test -s "$RUNNER_TEMP/upstreamlens-wheel-demo.html"
+          set +e
+          "$RUNNER_TEMP/upstreamlens-wheel/bin/upstreamlens" analyze-nginx "$RUNNER_TEMP/missing-upstreamlens.log"
+          status=$?
+          set -e
+          test "$status" -eq 2
