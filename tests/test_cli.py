@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 
+from rich.text import Text
 from typer.testing import CliRunner
 
 from upstreamlens import cli
@@ -34,7 +35,49 @@ def test_help_lists_commands_and_options():
     assert "demo" in help_result.stdout
     detail = runner.invoke(cli.app, ["diagnose", "--help"], env={"NO_COLOR": "1"})
     assert detail.exit_code == 0
-    assert all(option in detail.stdout for option in ("--format", "--output", "--timeout"))
+    help_text = Text.from_ansi(detail.stdout).plain
+    for option in ("--format", "--output", "--timeout"):
+        assert option in help_text
+
+
+def test_help_options_with_github_actions_styling():
+    script = (
+        "from typer.testing import CliRunner; "
+        "from upstreamlens.cli import app; "
+        "result = CliRunner().invoke(app, ['diagnose', '--help'], "
+        "env={'NO_COLOR': '1'}, color=True); "
+        "print(result.stdout, end=''); "
+        "raise SystemExit(result.exit_code)"
+    )
+    env = {**os.environ, "GITHUB_ACTIONS": "true", "TERM": "xterm", "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, env=env)
+    assert result.returncode == 0
+    output = result.stdout.decode("utf-8")
+    assert "\x1b[" in output
+    help_text = Text.from_ansi(output.replace("\r\n", "\n")).plain
+    for option in ("--format", "--output", "--timeout"):
+        assert option in help_text
+
+
+def test_diagnose_options_are_usable(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_diagnose(target, *, timeout):
+        calls.append((target, timeout))
+        return cli.load_demo()
+
+    monkeypatch.setattr(cli, "diagnose", fake_diagnose)
+    output = tmp_path / "报告.json"
+    result = runner.invoke(
+        cli.app,
+        ["diagnose", "https://site.example", "--format", "json", "--output", str(output), "--timeout", "1.25"],
+    )
+    assert result.exit_code == 1
+    assert len(calls) == 1
+    assert calls[0][0].origin == "https://site.example"
+    assert calls[0][1] == 1.25
+    assert json.loads(result.stdout) == json.loads(output.read_text(encoding="utf-8"))
+    assert json.loads(result.stdout)["source"] == "simulated"
 
 
 def test_invalid_credentials_never_echoed(monkeypatch):
